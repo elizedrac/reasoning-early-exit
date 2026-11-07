@@ -20,7 +20,7 @@ data/          question-level splits (JSONL), stats.json, data.md, README.md (ho
 scripts/       make_splits.py, sample_inputs.py, generate_traces.py, extract_hidden.py, make_handcheck.py
 eval/          score.py, scoring.md
 baselines/     simple-baseline.py/.md (stopping rules), strong-baseline.py/.md (probe)
-pilot/         pilot traces (200 training questions, 4,096-token limit), pilot script, hand-check CSV
+pilot/         pilot traces (200 training questions, 4,096-token limit), pilot script and Colab notebook, hand-check CSV
 results/       outputs of baselines and scoring
 ```
 

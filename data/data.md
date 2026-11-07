@@ -46,14 +46,26 @@ Example (GSM8K):
 
 ## Reproducing
 
+From the repo root:
+
 ```bash
 pip install datasets
-python data/make_splits.py --out data --seed 0
-rm -f data/.DS_Store
-COPYFILE_DISABLE=1 tar -czf data.tar.gz data
+python scripts/make_splits.py --out data --seed 0
 ```
 
 `--max-train N` subsamples each train split if we need to cap trace-generation compute.
+
+## Trace inputs
+
+`scripts/sample_inputs.py` (seed 0) picks the questions we generate traces for and writes them to `data/trace_inputs/{dataset}_{split}.jsonl`, adding a `split` field to each record:
+
+| Split | Questions |
+|---|---|
+| Train | 1,000 GSM8K + 1,000 MATH (random sample) |
+| Dev | 200 GSM8K + 200 MATH (random sample) |
+| Test | all 1,319 GSM8K + 500 MATH-500 + 30 AIME 2024 |
+
+The script checks that no question ID or problem text appears in more than one file.
 
 ## Derived data (to be generated in Milestone 2)
 
@@ -61,4 +73,4 @@ The questions above are the inputs. For each question, we will generate a reason
 
 Some MATH answers include units or formatting (for example `13.5\text{ pounds}`, `\$3.47`). We keep them as is and rely on `math-verify` to normalize them during labeling, and will check its handling of these cases in Milestone 2.
 
-**Pilot status:** We tested trace generation and labeling on 200 training questions (100 each from GSM8K and MATH). The model's final answer was correct on 86% of GSM8K and 69% of MATH questions, and traces averaged 5.7 labeled chunks after merging chunks until each states a clear answer. 18.5% of traces reached the 4,096-token limit, so we will raise it for the full run. Hidden states have not been saved yet.
+**Pilot status:** We tested trace generation and labeling on 200 training questions (100 each from GSM8K and MATH). The model's final answer was correct on 86% of GSM8K and 69% of MATH questions, and traces averaged 5.7 chunks (5.6 labeled) after merging chunks until each states a clear answer. 18.5% of traces reached the 4,096-token limit, so the full run uses a 16,384-token limit. Hidden states have not been saved yet. The pilot traces, script (`sample_traces.py`), and Colab notebook (`reasoning-trace-pilot.ipynb`) are in `pilot/`.

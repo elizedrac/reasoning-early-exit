@@ -13,7 +13,6 @@ python scripts/make_splits.py --out data --seed 0
 ```
 
 This downloads the datasets from Hugging Face and rewrites `data/{gsm8k,math,aime}/*.jsonl` and `data/stats.json`.
-(`data.md` shows the old path `data/make_splits.py`; the script now lives in `scripts/`.)
 
 ## Trace inputs
 
