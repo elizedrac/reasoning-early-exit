@@ -6,9 +6,8 @@ Per trace:
      "Alternatively", ...).
   2. Extract each piece's answer with Qwen2.5-7B-Instruct, one call per piece. The prompt has 4
      worked examples, the question, all previous reasoning as context, and the current piece,
-     and asks only about the current piece: the final answer it explicitly states most recently
-     without rejecting it, or NONE (it must not compute an answer itself). If a reply has no
-     ANSWER line, the pilot's regex extractor (generate_traces.extract_answer) is used instead.
+     and asks only about the current piece: the final answer it states most recently without
+     rejecting it, or NONE. If a reply has no ANSWER line, the pilot's regex extractor (generate_traces.extract_answer) is used instead.
   3. Merge pieces with no answer into the nearest piece that has one, following Zhang et al.
      (segment until an answer appears): a no-answer piece joins the next answered piece. Pieces
      after the last answer join the last answered chunk. A trace with no answer at all becomes
@@ -29,14 +28,14 @@ prompts put the shared text first (examples, question, previous reasoning) so th
 reuses it across a trace's pieces. mlx runs one prompt at a time, about 10 s per piece on an M4,
 so use it for small tests only. Replies are cached in --cache, keyed by model + prompt.
 
-Hand-check (100 reviewed pilot chunks, see pilot/README.md): label accuracy 95% for the LLM
-extractor vs. 93% for the regex; extraction accuracy 91% vs. 62%.
+Hand-check (100 reviewed pilot chunks, see pilot/README.md): label accuracy 96% for the LLM
+extractor vs. 93% for the regex; extraction accuracy 92% vs. 62%.
 
 Usage:
     python scripts/label_chunks.py --backend mlx --input traces/gsm8k_train.jsonl --out labeled/gsm8k_train.jsonl
     python scripts/label_chunks.py --backend vllm --input traces/gsm8k_train.jsonl --out labeled/gsm8k_train.jsonl
 Validate on the 100 reviewed hand-check chunks (regex vs. LLM):
-    python scripts/label_chunks.py --handcheck pilot/handcheck.csv --out pilot/handcheck_llm_v3.csv
+    python scripts/label_chunks.py --handcheck pilot/handcheck.csv --out pilot/handcheck_llm_v2.csv
 Resumable: IDs already in --out are skipped.
 """
 import argparse
@@ -61,7 +60,6 @@ INSTRUCTIONS = """You will see a math question, the student's reasoning so far, 
 - Only an answer to the question asked counts. Intermediate results, values of helper variables, equations set to zero, digit sums, and numbers restated from the question do not.
 - If the current excerpt states no final answer, or rejects the one it states, reply NONE.
 - Use the previous reasoning only to understand the excerpt. Don't report an answer that appears only there.
-- Only copy an answer the chunk explicitly states. Never compute one yourself. If the chunk shows a calculation without stating the result, answer NONE.
 - Write the answer as a bare value or LaTeX expression, without units or words.
 Reply with exactly one line: ANSWER: <answer>  or  ANSWER: NONE
 

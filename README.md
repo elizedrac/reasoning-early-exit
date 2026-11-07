@@ -67,8 +67,8 @@ Measured on an M4 (24 GB): generation ~29 tokens/s, extraction ~10 s per piece, 
 
 ### Labeling quality
 
-On 100 manually reviewed pilot chunks, the LLM extractor labels 95% of chunks correctly (regex:
-93%) and extracts the right answer 91% of the time (regex: 62%, 40% on MATH). Details in
+On 100 manually reviewed pilot chunks, the LLM extractor labels 96% of chunks correctly (regex:
+93%) and extracts the right answer 92% of the time (regex: 62%, 40% on MATH). Details in
 `pilot/README.md`.
 
 ## Large files
