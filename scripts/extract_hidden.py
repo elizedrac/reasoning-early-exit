@@ -1,8 +1,7 @@
 """
 Extract hidden states at the end of each labeled chunk, for training the correctness probe.
 
-For each trace in a generate_traces.py output file, run one forward pass (transformers, fp16,
-no grad) over prompt_token_ids + token_ids with output_hidden_states=True. For every chunk with
+For each trace in a label_chunks.py output file, run one forward pass (transformers, no grad) over prompt_token_ids + token_ids with output_hidden_states=True. For every chunk with
 a non-null label, take the vector at position len(prompt_token_ids) + end_token - 1, i.e. the
 last token of the chunk.
 
@@ -20,8 +19,12 @@ Output: shards <out-dir>/shard_00000.pt, ... each a dict with
     trace_ids  all trace IDs processed in this shard (including traces with no labeled chunks)
 Resumable: traces already listed in an existing shard are skipped.
 
-Usage (GPU):
-    python scripts/extract_hidden.py --traces traces/gsm8k_train.jsonl --out-dir hidden/gsm8k_train
+Devices: --device cuda (float16), mps (float16 on Apple silicon), cpu (float32). If a trace's
+vectors contain NaN/inf in float16, that trace is rerun in float32.
+
+Usage:
+    python scripts/extract_hidden.py --traces labeled/gsm8k_train.jsonl --out-dir hidden/gsm8k_train
+    python scripts/extract_hidden.py --device mps --traces ... --out-dir ...
 Laptop sanity check (2 traces, first 512 tokens, CPU):
     python scripts/extract_hidden.py --traces traces/x.jsonl --out-dir hidden/smoke --cpu-smoke-test
 """
@@ -45,6 +48,20 @@ def load_model(device, dtype):
     dtype_kw = "dtype" if (major, minor) >= (4, 56) else "torch_dtype"
     model = AutoModel.from_pretrained(MODEL, **{dtype_kw: dtype}).to(device).eval()
     return model
+
+
+def chunk_vectors(model, ids, positions, layers, n_layers, device):
+    """Hidden states at `positions` for each layer index: float32 CPU tensor [num_chunks, num_layers, hidden]."""
+    with torch.no_grad():
+        out = model(torch.tensor([ids], device=device), output_hidden_states=True)
+    hs = out.hidden_states
+    assert len(hs) == n_layers + 1, f"expected {n_layers + 1} hidden states, got {len(hs)}"
+    pos_t = torch.tensor(positions, device=device)
+    x = torch.stack([hs[i][0, pos_t] for i in layers], dim=1).float().cpu()
+    del out, hs
+    if device == "mps":
+        torch.mps.empty_cache()
+    return x
 
 
 def existing_shards(out_dir):
@@ -74,28 +91,32 @@ def main():
     p.add_argument("--n", type=int, default=None, help="only use the first N traces")
     p.add_argument("--max-len", type=int, default=None,
                    help="truncate inputs to this many tokens; chunks ending past it are skipped")
+    p.add_argument("--device", choices=["cuda", "mps", "cpu"], default="cuda")
     p.add_argument("--cpu-smoke-test", action="store_true",
                    help="CPU, float32 compute, 2 traces, --max-len 512")
     args = p.parse_args()
 
     if args.cpu_smoke_test:
-        device, dtype = "cpu", torch.float32  # fp16 matmuls on CPU are slow or unsupported
-        args.n, args.max_len = 2, 512
-    else:
-        device, dtype = "cuda", torch.float16
-        assert torch.cuda.is_available(), "no GPU found (use --cpu-smoke-test on a laptop)"
+        args.device, args.n, args.max_len = "cpu", 2, 512
+    device = args.device
+    dtype = torch.float32 if device == "cpu" else torch.float16  # fp16 matmuls on CPU are slow or unsupported
+    if device == "cuda":
+        assert torch.cuda.is_available(), "no CUDA GPU found (try --device mps or cpu)"
+    if device == "mps":
+        assert torch.backends.mps.is_available(), "MPS not available"
 
     os.makedirs(args.out_dir, exist_ok=True)
     shard_idx, done = existing_shards(args.out_dir)
     print(f"{len(done)} traces already extracted in {shard_idx} shards")
 
     model = load_model(device, dtype)
+    fp32_model = None  # loaded on first NaN/inf
     n_layers = model.config.num_hidden_layers
     layers = [n_layers if i == -1 else i for i in LAYER_SETS[args.layers]]
     assert max(layers) <= n_layers
 
     X, meta, trace_ids = [], {k: [] for k in META_KEYS}, []
-    n_seen = n_skipped_chunks = 0
+    n_seen = n_skipped_chunks = n_fp32_reruns = 0
     t0 = time.time()
     with open(args.traces) as f:
         for line in f:
@@ -112,7 +133,7 @@ def main():
 
             positions, rows = [], []
             for c in rec["chunks"]:
-                if c["correct"] is None:
+                if c["correct"] is None or c["end_token"] is None:
                     continue
                 pos = n_prompt + c["end_token"] - 1
                 if pos >= len(ids) or c["end_token"] == 0:
@@ -122,14 +143,15 @@ def main():
                 rows.append(c)
 
             if positions:
-                with torch.no_grad():
-                    out = model(torch.tensor([ids], device=device), output_hidden_states=True)
-                hs = out.hidden_states
-                assert len(hs) == n_layers + 1, f"expected {n_layers + 1} hidden states, got {len(hs)}"
-                pos_t = torch.tensor(positions, device=device)
-                # [num_chunks, num_layers, hidden]
-                X.append(torch.stack([hs[i][0, pos_t] for i in layers], dim=1).to(torch.float16).cpu())
-                del out, hs
+                x = chunk_vectors(model, ids, positions, layers, n_layers, device)
+                if not torch.isfinite(x).all() and dtype != torch.float32:
+                    if fp32_model is None:
+                        print("non-finite values in float16; loading a float32 copy for reruns")
+                        fp32_model = load_model(device, torch.float32)
+                    x = chunk_vectors(fp32_model, ids, positions, layers, n_layers, device)
+                    n_fp32_reruns += 1
+                assert torch.isfinite(x).all(), f"non-finite hidden states for {rec['id']}"
+                X.append(x.to(torch.float16))
                 for c in rows:
                     for key, val in zip(META_KEYS, [rec["id"], rec["dataset"], rec["split"], c["k"],
                                                     int(c["correct"]), c["end_token"], rec["num_tokens"]]):
@@ -145,6 +167,8 @@ def main():
     if trace_ids:
         path, shape = save_shard(args.out_dir, shard_idx, X, meta, trace_ids, layers)
         print(f"wrote {path} X={tuple(shape)}")
+    if n_fp32_reruns:
+        print(f"{n_fp32_reruns} traces rerun in float32 after NaN/inf in float16")
     if n_skipped_chunks:
         print(f"skipped {n_skipped_chunks} labeled chunks past --max-len or with an empty span")
     print(f"done in {(time.time() - t0) / 60:.1f} min")
