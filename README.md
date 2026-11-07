@@ -30,22 +30,24 @@ Run from the repo root, in this order:
 
 1. `scripts/make_splits.py`: download datasets and build train/dev/test splits (`data/`)
 2. `scripts/sample_inputs.py`: pick the questions to generate traces for (`data/trace_inputs/`)
-3. `scripts/generate_traces.py`: generate, chunk, and label traces (GPU, vLLM)
-4. `scripts/extract_hidden.py`: save chunk-end hidden states (GPU, transformers)
-5. `baselines/simple-baseline.py`, `baselines/strong-baseline.py`: stopping rules and probe
-6. `eval/score.py`: accuracy, tokens, token reduction, probe metrics
+3. `scripts/generate_traces.py`: generate traces (`--backend vllm` on NVIDIA, `mlx` on Apple silicon)
+4. `scripts/label_chunks.py`: split at reflection markers, extract answers with Qwen2.5-7B-Instruct, judge with math-verify
+5. `scripts/extract_hidden.py`: save chunk-end hidden states (`--device cuda|mps|cpu`)
+6. `baselines/simple-baseline.py`, `baselines/strong-baseline.py`: stopping rules and probe
+7. `eval/score.py`: accuracy, tokens, token reduction, probe metrics
+
+Steps 3 to 5 for every input file:
 
 ```bash
-pip install -r requirements.txt
-python scripts/sample_inputs.py
-python scripts/generate_traces.py --input data/trace_inputs/gsm8k_train.jsonl --out traces/gsm8k_train.jsonl
-python scripts/extract_hidden.py --traces traces/gsm8k_train.jsonl --out-dir hidden/gsm8k_train
+pip install -r requirements.txt            # on a Mac also: pip install mlx-lm
+bash scripts/run_all.sh                    # NVIDIA: vllm + cuda
+BACKEND=mlx DEVICE=mps bash scripts/run_all.sh   # Apple silicon
 ```
 
-Both GPU scripts are resumable: rerun the same command after a Colab disconnect and finished
-questions are skipped.
+All steps are resumable: rerun the same command after a disconnect and finished questions are
+skipped. LLM extractor replies are cached in `cache/`.
 
 ## Large files
 
-Traces (`traces/`) and hidden states (`hidden/`, `*.pt`) live in our **shared Google Drive**, not
+Traces (`traces/`, `labeled/`) and hidden states (`hidden/`, `*.pt`) live in our **shared Google Drive**, not
 in git. They are listed in `.gitignore`. On Colab, mount Drive and point `--out` / `--out-dir` there.
