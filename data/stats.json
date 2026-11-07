@@ -1,0 +1,21 @@
+{
+  "gsm8k": {
+    "train": 6726,
+    "dev": 747,
+    "test": 1319
+  },
+  "math": {
+    "train": 6724,
+    "dev": 747,
+    "test": 500,
+    "dropped": {
+      "no_answer": 4,
+      "multi_part_answer": 25
+    }
+  },
+  "aime": {
+    "train": 0,
+    "dev": 0,
+    "test": 30
+  }
+}
