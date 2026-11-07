@@ -357,8 +357,13 @@ def handcheck(args, ex):
         truth_label = int(truth is not None and is_correct(truth, r["gold"]) is True)
         llm = llm_by_trace[r["id"]][int(r["k"])]
         llm_label = int(llm is not None and is_correct(llm, r["gold"]) is True)
+        # 3-way label: None (no answer), 0 (incorrect), 1 (correct)
+        truth3 = None if truth is None else truth_label
+        llm3 = None if llm is None else llm_label
         res = {"regex_extract": int(same_answer(r["extracted"], truth)), "regex_label": int(int(r["label"]) == truth_label),
-               "llm_extract": int(same_answer(llm, truth)), "llm_label": int(llm_label == truth_label)}
+               "regex_label3": int(int(r["label"]) == truth3),
+               "llm_extract": int(same_answer(llm, truth)), "llm_label": int(llm_label == truth_label),
+               "llm_label3": int(llm3 == truth3)}
         for key in (r["dataset"], "all"):
             for m, v in res.items():
                 score.setdefault(key, {}).setdefault(m, []).append(v)
@@ -371,12 +376,13 @@ def handcheck(args, ex):
         w.writeheader()
         w.writerows(out)
 
-    print(f"{'':7s}{'n':>4s}  {'extraction regex':>17s} {'LLM':>5s}   {'label regex':>12s} {'LLM':>5s}")
+    print("label = correct vs. not (no answer counts as incorrect); label3 = correct / incorrect / no answer")
+    print(f"{'':7s}{'n':>4s}  {'extraction regex':>17s} {'LLM':>5s}   {'label regex':>12s} {'LLM':>5s}   {'label3 regex':>13s} {'LLM':>5s}")
     for key in ("all", "gsm8k", "math"):
         s = score[key]
         pct = {m: sum(v) / len(v) for m, v in s.items()}
         print(f"{key:7s}{len(s['llm_label']):4d}  {pct['regex_extract']:17.0%} {pct['llm_extract']:5.0%}   "
-              f"{pct['regex_label']:12.0%} {pct['llm_label']:5.0%}")
+              f"{pct['regex_label']:12.0%} {pct['llm_label']:5.0%}   {pct['regex_label3']:13.0%} {pct['llm_label3']:5.0%}")
     bad = [(r["id"], r["k"], r["true_answer"] or "NONE", r["llm_answer"] or "NONE") for r in out if not r["llm_extract"]]
     print(f"LLM extraction misses (id, k, truth, llm): {bad}")
     print(f"wrote {args.out}")

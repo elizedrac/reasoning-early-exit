@@ -1,0 +1,101 @@
+id,dataset,k,gold,true_answer,regex_answer,llm_answer,truth_label,llm_label_value,regex_extract,regex_label,regex_label3,llm_extract,llm_label,llm_label3,label_mode,review_notes
+gsm8k-train-1876,gsm8k,2,60,60,60,60,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-5390,gsm8k,25,15,15,15,15,1,1,1,1,1,1,1,1,chunk,
+gsm8k-train-5741,gsm8k,5,96,96,96,16,1,0,1,1,1,0,0,0,trace,
+gsm8k-train-1230,gsm8k,3,120,120,120,120,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-2872,gsm8k,11,8,8,8,8,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-5619,gsm8k,10,142,142,142,142,1,1,1,1,1,1,1,1,chunk,
+gsm8k-train-5390,gsm8k,9,15,,15,15,0,1,0,0,0,0,0,0,chunk,15 here is a sub-calculation (3/10 of 50); model already holds 15
+gsm8k-train-3741,gsm8k,6,150,250,1.111,,0,0,0,1,1,0,1,0,trace,"1.111 is a rate; model is confused (also computes 250), holds no correct answer"
+gsm8k-train-5619,gsm8k,1,142,,442,442,0,0,0,1,0,0,1,0,chunk,"442 is the till total, a sub-step"
+gsm8k-train-6172,gsm8k,3,9,9,9,9,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-3985,gsm8k,1,30,30,30,30,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-2872,gsm8k,4,8,8,8,8,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-5196,gsm8k,1,18,18,18,18,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-5810,gsm8k,2,76,76,76,,1,0,1,1,1,0,0,0,trace,
+gsm8k-train-5196,gsm8k,2,18,18,18,18,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-3402,gsm8k,9,2,2,2,2,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-1381,gsm8k,1,9240,,1680 - 360,1320,0,0,0,1,0,0,1,0,trace,'1680 - 360' is a sub-step
+gsm8k-train-2576,gsm8k,5,14,14.00,14.00,21,1,0,1,1,1,0,0,0,trace,
+gsm8k-train-3571,gsm8k,1,65,65,65,65,1,1,1,1,1,1,1,1,chunk,
+gsm8k-train-3655,gsm8k,1,13,13,13,13,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-326,gsm8k,2,37,37,37,37,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-3571,gsm8k,22,65,65,65,65,1,1,1,1,1,1,1,1,chunk,
+gsm8k-train-3493,gsm8k,0,22,,14,,0,0,0,1,0,1,1,1,trace,14 is a given from the problem
+gsm8k-train-6530,gsm8k,1,6,6,6,6,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-2461,gsm8k,1,14000,14000,14000,,1,0,1,1,1,0,0,0,trace,
+gsm8k-train-5390,gsm8k,39,15,15,15,15,1,1,1,1,1,1,1,1,chunk,
+gsm8k-train-3571,gsm8k,7,65,65,65,65,1,1,1,1,1,1,1,1,chunk,
+gsm8k-train-309,gsm8k,1,84000,84000,84000,84000,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-5276,gsm8k,1,32,32%,32%,32%,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-2506,gsm8k,7,8,8,8,8,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-1230,gsm8k,4,120,80,80,240,0,0,1,1,1,0,1,1,trace,
+gsm8k-train-1516,gsm8k,0,800,,30,800,0,1,0,1,0,0,0,0,trace,30 is a long-division mid-step
+gsm8k-train-6056,gsm8k,2,165,165,165,165,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-3402,gsm8k,7,2,2,2,2,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-5390,gsm8k,3,15,15,15,15,1,1,1,1,1,1,1,1,chunk,
+gsm8k-train-6140,gsm8k,1,76,76,76,,1,0,1,1,1,0,0,0,trace,
+gsm8k-train-1888,gsm8k,3,20,20,20,20,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-3571,gsm8k,25,65,65,65,65,1,1,1,1,1,1,1,1,chunk,
+gsm8k-train-4228,gsm8k,17,39,37.5,37.5,37.5,0,0,1,1,1,1,1,1,chunk,
+gsm8k-train-3571,gsm8k,17,65,65,65,65,1,1,1,1,1,1,1,1,chunk,
+gsm8k-train-1516,gsm8k,1,800,800,800,,1,0,1,1,1,0,0,0,trace,
+gsm8k-train-3220,gsm8k,0,1530,,730,730,0,0,0,1,0,0,1,0,trace,"730 is one cost component, not the total"
+gsm8k-train-1245,gsm8k,0,54,54,54,54,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-4228,gsm8k,12,39,37.5,37.5,37.5,0,0,1,1,1,1,1,1,chunk,
+gsm8k-train-2576,gsm8k,0,14,,32,32,0,0,0,1,0,0,1,0,trace,32 glasses is a sub-step
+gsm8k-train-5276,gsm8k,6,32,32%,32%,32%,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-3402,gsm8k,5,2,2,2,2,1,1,1,1,1,1,1,1,trace,
+gsm8k-train-7072,gsm8k,1,40,30,30,30,0,0,1,1,1,1,1,1,trace,
+gsm8k-train-3571,gsm8k,11,65,65,65,65,1,1,1,1,1,1,1,1,chunk,
+gsm8k-train-2872,gsm8k,8,8,8,8,8,1,1,1,1,1,1,1,1,trace,
+math-train-1935,math,8,16,17,17,17,0,0,1,1,1,1,1,1,chunk,
+math-train-3886,math,2,"1,-1,i,-i",,0,1,0,0,0,1,0,0,1,0,trace,0 from an equation '= 0'
+math-train-4565,math,3,6 + \sqrt{5},6 + \sqrt{5},6 + \sqrt{5},6 + \sqrt{5},1,1,1,1,1,1,1,1,trace,
+math-train-639,math,1,3,3,3,,1,0,1,1,1,0,0,0,trace,
+math-train-7091,math,7,1,,y,,0,0,0,1,0,1,1,1,trace,'y' from x = y
+math-train-4089,math,1,\frac{41}{20},,\frac{1 + i\sqrt{3}}{2},,0,0,0,1,0,1,1,1,trace,"value of omega, sub-step"
+math-train-2821,math,1,54,54,27,54,1,1,0,0,0,1,1,1,trace,"chunk states 54 gallons (correct), then rechecks 3^3 = 27; labeled incorrect"
+math-train-2620,math,4,47^\circ,,-1,,0,0,0,1,0,1,1,1,trace,-1 from line y = -1; ambiguous: 47 was stated two chunks earlier
+math-train-7219,math,1,\frac{1}{4} - \frac{3}{7} i,,\frac{\sqrt{193}}{28},12,0,0,0,1,0,0,1,0,trace,|S| sub-step; ambiguous: correct answer stated in chunk 0
+math-train-1195,math,0,"[3,7] \cup [8,9)",,7,3,0,0,0,1,0,0,1,0,trace,"7 = p(10), sub-step"
+math-train-7091,math,3,1,,-2t + \frac{1}{1 - t},,0,0,0,1,0,1,1,1,trace,"expression in t, sub-step"
+math-train-7334,math,4,8910^\circ,,0,,0,0,0,1,0,1,1,1,trace,0 from derivative equation
+math-train-1851,math,10,\dfrac{9}{100},3/40,3/40,3/40,0,0,1,1,1,1,1,1,chunk,
+math-train-5982,math,6,52\%,,2500,52%,0,1,0,1,0,0,0,0,trace,2500 is grid area; model torn between 10 and 13 squares (ambiguous)
+math-train-6730,math,3,7,7,7,7,1,1,1,1,1,1,1,1,trace,
+math-train-4663,math,10,76,,x^3 - \frac{1}{x^3},,0,0,0,1,0,1,1,1,trace,verifying identity after stating 76 in chunk 8; labeled incorrect
+math-train-7091,math,6,1,,y,,0,0,0,1,0,1,1,1,trace,'y' from x = y
+math-train-5036,math,9,9700,9700,16,9700,1,1,0,0,0,1,1,1,chunk,16 is a digit sum; chunk concludes 9700 (correct)
+math-train-5036,math,14,9700,9700,25,,1,0,0,0,0,0,0,0,chunk,25 is a digit sum; chunk says 9700 is the only way (correct)
+math-train-5036,math,12,9700,,17,9620,0,0,0,1,0,0,1,0,chunk,17 is a candidate's digit sum; model still holds 9700 (correct)
+math-train-2793,math,0,4 \sqrt{10},,9k,4\sqrt{10},0,1,0,1,0,0,0,0,trace,9k sub-step
+math-train-3427,math,0,12,,91,,0,0,0,1,0,1,1,1,trace,91 from problem restatement
+math-train-1930,math,5,60,60,60,60,1,1,1,1,1,1,1,1,trace,
+math-train-586,math,0,21,,2^K,21,0,1,0,1,0,0,0,0,trace,2^K from problem restatement
+math-train-1851,math,8,\dfrac{9}{100},,1/2,\(\frac{3}{10}\),0,0,0,1,0,0,1,0,chunk,1/2 sub-probability; model holds 9/100 (correct) from chunk 7
+math-train-2353,math,0,1.25,\frac{15}{12},15,,1,0,0,0,0,0,0,0,trace,15 is the numerator; chunk states expected value 15/12 = 1.25 (correct)
+math-train-2593,math,0,2.5,,b,,0,0,0,1,0,1,1,1,chunk,'b' is a variable
+math-train-16,math,1,10\frac{1}{12},,n + \frac{1}{n},2.5,0,0,0,1,0,0,1,0,trace,"expression, sub-step"
+math-train-3428,math,6,"(25,10)","(25, 10)","(25, 10)","(25, 10)",1,1,1,1,1,1,1,1,trace,
+math-train-457,math,2,5,5,5,5,1,1,1,1,1,1,1,1,trace,
+math-train-2716,math,5,6,,0,,0,0,0,1,0,1,1,1,trace,0 from equation
+math-train-254,math,3,25,25,25,,1,0,1,1,1,0,0,0,trace,
+math-train-2716,math,2,6,,\frac{12 \pm \sqrt{144 - (-432)}}{6},,0,0,0,1,0,1,1,1,trace,"unsimplified quadratic formula, not a committed answer"
+math-train-4663,math,4,76,76,76,34\sqrt{5},1,0,1,1,1,0,0,0,trace,
+math-train-1037,math,2,4,4,4,4,1,1,1,1,1,1,1,1,trace,
+math-train-1989,math,2,12,12,3,4,1,0,0,0,0,0,0,0,trace,3 nickels; chunk states 12 combinations (correct)
+math-train-254,math,2,25,25,16 * (25 / 16),,1,0,1,1,1,0,0,0,trace,"expression 16*(25/16) = 25, math-verify evaluates it correctly"
+math-train-1729,math,1,\frac{1}{2},\dfrac{1}{2},\dfrac{1}{2},,1,0,1,1,1,0,0,0,trace,
+math-train-1935,math,11,16,17,17,17,0,0,1,1,1,1,1,1,chunk,
+math-train-7390,math,0,9 - 4 \sqrt{5},,3\pi - 7\alpha,,0,0,0,1,0,1,1,1,trace,"expression, sub-step"
+math-train-1851,math,1,\dfrac{9}{100},,36,36,0,0,0,1,0,0,1,0,chunk,"36 favorable outcomes, sub-step"
+math-train-3000,math,0,86,,4,\(\pi\),0,0,0,1,0,0,1,0,trace,4 from circle equation
+math-train-1261,math,3,935,935,935,935,1,1,1,1,1,1,1,1,trace,
+math-train-1935,math,5,16,16,16,16,1,1,1,1,1,1,1,1,chunk,
+math-train-2261,math,2,\dfrac{4}{663},7/663,7/663,7/663,0,0,1,1,1,1,1,1,chunk,
+math-train-5036,math,15,9700,9700,9,9700,1,1,0,0,0,1,1,1,chunk,regex took 'is 9' from '9700 is the maximum when thousands digit is 9'; 9700 is correct
+math-train-6883,math,0,"\left( \frac{4}{3}, -\frac{7}{3}, \frac{14}{3} \right)",,-7/15,,0,0,0,1,0,1,1,1,trace,t = -7/15 is a sub-variable
+math-train-3668,math,8,8 \sqrt{7},8\sqrt{7},8\sqrt{7},8\sqrt{7},1,1,1,1,1,1,1,1,chunk,
+math-train-4796,math,7,7,5,5 \mod 8,5,0,0,1,1,1,1,1,1,trace,states L_100 = 5 mod 8 (wrong)
+math-train-1261,math,4,935,935,935,935,1,1,1,1,1,1,1,1,trace,

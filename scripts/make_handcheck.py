@@ -4,7 +4,7 @@ Sample labeled chunks from the pilot traces for a manual check of the regex + ma
 Samples 100 chunks with a non-null label (seed 0): 50 from GSM8K and 50 from MATH. Writes a CSV
 with the end of each chunk, the extracted answer, the gold answer, and the automatic label, plus
 empty review columns:
-    stated_answer   the answer the chunk actually commits to at its end (blank = none)
+    true_answer     the final answer the chunk states most recently without rejecting it (blank = none)
     extract_ok      1 if the extracted answer is what the chunk states, else 0
     label_ok        1 if the automatic correct/incorrect label is right, else 0
     notes
@@ -22,7 +22,7 @@ import json
 import random
 
 SOURCES = {"gsm8k": "pilot/gsm8k_sample.jsonl", "math": "pilot/math_sample.jsonl"}
-REVIEW_COLS = ["stated_answer", "extract_ok", "label_ok", "notes"]
+REVIEW_COLS = ["true_answer", "extract_ok", "label_ok", "notes"]
 TAIL_CHARS = 600
 
 
