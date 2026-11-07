@@ -8,3 +8,5 @@ hidden/
 __pycache__/
 .ipynb_checkpoints/
 .venv/
+cache/
+labeled/
