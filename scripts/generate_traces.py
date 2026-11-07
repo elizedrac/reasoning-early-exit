@@ -4,6 +4,7 @@ Generate reasoning traces with DeepSeek-R1-Distill-Qwen-1.5B.
 Backends:
     --backend vllm   NVIDIA GPU (e.g. Colab T4), batched
     --backend mlx    Apple silicon, one question at a time, same Hugging Face weights
+                     (~29 tokens/s on an M4: fine for tests, too slow for the full run)
 Both use the pilot's prompt and chat template, temperature 0.6, top_p 0.95, default
 --max-tokens 16384, and capture the generated token IDs directly.
 

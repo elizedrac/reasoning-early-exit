@@ -5,7 +5,8 @@
 #
 # Usage (from the repo root):
 #   bash scripts/run_all.sh                                   # NVIDIA defaults (vllm, cuda)
-#   BACKEND=mlx DEVICE=mps bash scripts/run_all.sh            # Apple silicon
+#   BACKEND=mlx DEVICE=mps bash scripts/run_all.sh            # Apple silicon (small tests only;
+#                                                             # the full run would take ~5-6 days)
 #   OUT=/content/drive/MyDrive/cis530 bash scripts/run_all.sh # write outputs to Google Drive
 # Any variable below can be overridden from the environment.
 set -euo pipefail

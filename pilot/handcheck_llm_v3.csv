@@ -1,0 +1,101 @@
+id,dataset,k,gold,true_answer,llm_source,review_notes,regex answer,regex extraction,regex label,regex label3,LLM answer,LLM extraction,LLM label,LLM label3,llm_raw
+gsm8k-train-1876,gsm8k,2,60,60,llm,,60,1,1,1,60,1,1,1,ANSWER: 60
+gsm8k-train-5390,gsm8k,25,15,15,llm,,15,1,1,1,15,1,1,1,ANSWER: 15
+gsm8k-train-5741,gsm8k,5,96,96,llm,,96,1,1,1,96,1,1,1,ANSWER: 96
+gsm8k-train-1230,gsm8k,3,120,120,llm,,120,1,1,1,120,1,1,1,ANSWER: 120
+gsm8k-train-2872,gsm8k,11,8,8,llm,,8,1,1,1,8,1,1,1,ANSWER: 8
+gsm8k-train-5619,gsm8k,10,142,142,llm,,142,1,1,1,142,1,1,1,ANSWER: 142
+gsm8k-train-5390,gsm8k,9,15,,llm,15 here is a sub-calculation (3/10 of 50); model already holds 15,15,0,0,0,15,0,0,0,ANSWER: 15
+gsm8k-train-3741,gsm8k,6,150,250,llm,"1.111 is a rate; model is confused (also computes 250), holds no correct answer",1.111,0,1,1,,0,1,0,ANSWER: NONE
+gsm8k-train-5619,gsm8k,1,142,,llm,"442 is the till total, a sub-step",442,0,1,0,442,0,1,0,ANSWER: 442
+gsm8k-train-6172,gsm8k,3,9,9,llm,,9,1,1,1,9,1,1,1,ANSWER: 9
+gsm8k-train-3985,gsm8k,1,30,30,llm,,30,1,1,1,30,1,1,1,ANSWER: 30
+gsm8k-train-2872,gsm8k,4,8,8,llm,,8,1,1,1,8,1,1,1,ANSWER: 8
+gsm8k-train-5196,gsm8k,1,18,18,llm,,18,1,1,1,18,1,1,1,ANSWER: 18
+gsm8k-train-5810,gsm8k,2,76,76,llm,,76,1,1,1,76,1,1,1,ANSWER: 76
+gsm8k-train-5196,gsm8k,2,18,18,llm,,18,1,1,1,18,1,1,1,ANSWER: 18
+gsm8k-train-3402,gsm8k,9,2,2,llm,,2,1,1,1,2,1,1,1,ANSWER: 2
+gsm8k-train-1381,gsm8k,1,9240,,llm,'1680 - 360' is a sub-step,1680 - 360,0,1,0,9240,0,0,0,ANSWER: 9240
+gsm8k-train-2576,gsm8k,5,14,14.00,llm,,14.00,1,1,1,14.00,1,1,1,ANSWER: 14.00
+gsm8k-train-3571,gsm8k,1,65,65,llm,,65,1,1,1,65,1,1,1,ANSWER: 65
+gsm8k-train-3655,gsm8k,1,13,13,llm,,13,1,1,1,13,1,1,1,ANSWER: 13
+gsm8k-train-326,gsm8k,2,37,37,llm,,37,1,1,1,37,1,1,1,ANSWER: 37
+gsm8k-train-3571,gsm8k,22,65,65,llm,,65,1,1,1,65,1,1,1,ANSWER: 65
+gsm8k-train-3493,gsm8k,0,22,,llm,14 is a given from the problem,14,0,1,0,,1,1,1,ANSWER: NONE
+gsm8k-train-6530,gsm8k,1,6,6,llm,,6,1,1,1,6,1,1,1,ANSWER: 6
+gsm8k-train-2461,gsm8k,1,14000,14000,llm,,14000,1,1,1,14000,1,1,1,ANSWER: 14000
+gsm8k-train-5390,gsm8k,39,15,15,llm,,15,1,1,1,15,1,1,1,ANSWER: 15
+gsm8k-train-3571,gsm8k,7,65,65,llm,,65,1,1,1,65,1,1,1,ANSWER: 65
+gsm8k-train-309,gsm8k,1,84000,84000,llm,,84000,1,1,1,84000,1,1,1,ANSWER: 84000
+gsm8k-train-5276,gsm8k,1,32,32%,llm,,32%,1,1,1,32,1,1,1,ANSWER: 32
+gsm8k-train-2506,gsm8k,7,8,8,llm,,8,1,1,1,8,1,1,1,ANSWER: 8
+gsm8k-train-1230,gsm8k,4,120,80,llm,,80,1,1,1,160,0,1,1,ANSWER: 160
+gsm8k-train-1516,gsm8k,0,800,,llm,30 is a long-division mid-step,30,0,1,0,,1,1,1,ANSWER: NONE
+gsm8k-train-6056,gsm8k,2,165,165,llm,,165,1,1,1,165,1,1,1,ANSWER: 165
+gsm8k-train-3402,gsm8k,7,2,2,llm,,2,1,1,1,2,1,1,1,ANSWER: 2
+gsm8k-train-5390,gsm8k,3,15,15,llm,,15,1,1,1,15,1,1,1,ANSWER: 15
+gsm8k-train-6140,gsm8k,1,76,76,llm,,76,1,1,1,76,1,1,1,ANSWER: 76
+gsm8k-train-1888,gsm8k,3,20,20,llm,,20,1,1,1,20,1,1,1,ANSWER: 20
+gsm8k-train-3571,gsm8k,25,65,65,llm,,65,1,1,1,65,1,1,1,ANSWER: 65
+gsm8k-train-4228,gsm8k,17,39,37.5,llm,,37.5,1,1,1,37.5,1,1,1,ANSWER: 37.5
+gsm8k-train-3571,gsm8k,17,65,65,llm,,65,1,1,1,65,1,1,1,ANSWER: 65
+gsm8k-train-1516,gsm8k,1,800,800,llm,,800,1,1,1,800,1,1,1,ANSWER: 800
+gsm8k-train-3220,gsm8k,0,1530,,llm,"730 is one cost component, not the total",730,0,1,0,,1,1,1,ANSWER: NONE
+gsm8k-train-1245,gsm8k,0,54,54,llm,,54,1,1,1,54,1,1,1,ANSWER: 54
+gsm8k-train-4228,gsm8k,12,39,37.5,llm,,37.5,1,1,1,37.5,1,1,1,ANSWER: 37.5
+gsm8k-train-2576,gsm8k,0,14,,llm,32 glasses is a sub-step,32,0,1,0,,1,1,1,ANSWER: NONE
+gsm8k-train-5276,gsm8k,6,32,32%,llm,,32%,1,1,1,32,1,1,1,ANSWER: 32
+gsm8k-train-3402,gsm8k,5,2,2,llm,,2,1,1,1,2,1,1,1,ANSWER: 2
+gsm8k-train-7072,gsm8k,1,40,30,llm,,30,1,1,1,30,1,1,1,ANSWER: 30
+gsm8k-train-3571,gsm8k,11,65,65,llm,,65,1,1,1,65,1,1,1,ANSWER: 65
+gsm8k-train-2872,gsm8k,8,8,8,llm,,8,1,1,1,8,1,1,1,ANSWER: 8
+math-train-1935,math,8,16,17,llm,,17,1,1,1,17,1,1,1,ANSWER: 17
+math-train-3886,math,2,"1,-1,i,-i",,llm,0 from an equation '= 0',0,0,1,0,,1,1,1,ANSWER: NONE
+math-train-4565,math,3,6 + \sqrt{5},6 + \sqrt{5},llm,,6 + \sqrt{5},1,1,1,6 + sqrt(5),0,0,0,ANSWER: 6 + sqrt(5)
+math-train-639,math,1,3,3,llm,,3,1,1,1,3,1,1,1,ANSWER: 3
+math-train-7091,math,7,1,,llm,'y' from x = y,y,0,1,0,,1,1,1,ANSWER: NONE
+math-train-4089,math,1,\frac{41}{20},,llm,"value of omega, sub-step",\frac{1 + i\sqrt{3}}{2},0,1,0,,1,1,1,ANSWER: NONE
+math-train-2821,math,1,54,54,llm,"chunk states 54 gallons (correct), then rechecks 3^3 = 27; labeled incorrect",27,0,0,0,54,1,1,1,ANSWER: 54
+math-train-2620,math,4,47^\circ,,llm,-1 from line y = -1; ambiguous: 47 was stated two chunks earlier,-1,0,1,0,,1,1,1,ANSWER: NONE
+math-train-7219,math,1,\frac{1}{4} - \frac{3}{7} i,,llm,|S| sub-step; ambiguous: correct answer stated in chunk 0,\frac{\sqrt{193}}{28},0,1,0,,1,1,1,ANSWER: NONE
+math-train-1195,math,0,"[3,7] \cup [8,9)",,llm,"7 = p(10), sub-step",7,0,1,0,,1,1,1,ANSWER: NONE
+math-train-7091,math,3,1,,llm,"expression in t, sub-step",-2t + \frac{1}{1 - t},0,1,0,,1,1,1,ANSWER: NONE
+math-train-7334,math,4,8910^\circ,,llm,0 from derivative equation,0,0,1,0,,1,1,1,ANSWER: NONE
+math-train-1851,math,10,\dfrac{9}{100},3/40,llm,,3/40,1,1,1,3/40,1,1,1,ANSWER: 3/40
+math-train-5982,math,6,52\%,,llm,2500 is grid area; model torn between 10 and 13 squares (ambiguous),2500,0,1,0,,1,1,1,ANSWER: NONE
+math-train-6730,math,3,7,7,llm,,7,1,1,1,7,1,1,1,ANSWER: 7
+math-train-4663,math,10,76,,llm,verifying identity after stating 76 in chunk 8; labeled incorrect,x^3 - \frac{1}{x^3},0,1,0,,1,1,1,ANSWER: NONE
+math-train-7091,math,6,1,,llm,'y' from x = y,y,0,1,0,,1,1,1,ANSWER: NONE
+math-train-5036,math,9,9700,9700,llm,16 is a digit sum; chunk concludes 9700 (correct),16,0,0,0,9700,1,1,1,ANSWER: 9700
+math-train-5036,math,14,9700,9700,llm,25 is a digit sum; chunk says 9700 is the only way (correct),25,0,0,0,,0,0,0,ANSWER: NONE
+math-train-5036,math,12,9700,,llm,17 is a candidate's digit sum; model still holds 9700 (correct),17,0,1,0,,1,1,1,ANSWER: NONE
+math-train-2793,math,0,4 \sqrt{10},,llm,9k sub-step,9k,0,1,0,,1,1,1,ANSWER: NONE
+math-train-3427,math,0,12,,llm,91 from problem restatement,91,0,1,0,,1,1,1,ANSWER: NONE
+math-train-1930,math,5,60,60,llm,,60,1,1,1,60,1,1,1,ANSWER: 60
+math-train-586,math,0,21,,llm,2^K from problem restatement,2^K,0,1,0,,1,1,1,ANSWER: NONE
+math-train-1851,math,8,\dfrac{9}{100},,llm,1/2 sub-probability; model holds 9/100 (correct) from chunk 7,1/2,0,1,0,,1,1,1,ANSWER: NONE
+math-train-2353,math,0,1.25,\frac{15}{12},llm,15 is the numerator; chunk states expected value 15/12 = 1.25 (correct),15,0,0,0,1.25,1,1,1,ANSWER: 1.25
+math-train-2593,math,0,2.5,,llm,'b' is a variable,b,0,1,0,,1,1,1,ANSWER: NONE
+math-train-16,math,1,10\frac{1}{12},,llm,"expression, sub-step",n + \frac{1}{n},0,1,0,,1,1,1,ANSWER: NONE
+math-train-3428,math,6,"(25,10)","(25, 10)",llm,,"(25, 10)",1,1,1,"(25, 10)",1,1,1,"ANSWER: (25, 10)"
+math-train-457,math,2,5,5,llm,,5,1,1,1,5,1,1,1,ANSWER: 5
+math-train-2716,math,5,6,,llm,0 from equation,0,0,1,0,,1,1,1,ANSWER: NONE
+math-train-254,math,3,25,25,llm,,25,1,1,1,25,1,1,1,ANSWER: 25
+math-train-2716,math,2,6,,llm,"unsimplified quadratic formula, not a committed answer",\frac{12 \pm \sqrt{144 - (-432)}}{6},0,1,0,,1,1,1,ANSWER: NONE
+math-train-4663,math,4,76,76,llm,,76,1,1,1,,0,0,0,ANSWER: NONE
+math-train-1037,math,2,4,4,llm,,4,1,1,1,4,1,1,1,ANSWER: 4
+math-train-1989,math,2,12,12,llm,3 nickels; chunk states 12 combinations (correct),3,0,0,0,12,1,1,1,ANSWER: 12
+math-train-254,math,2,25,25,llm,"expression 16*(25/16) = 25, math-verify evaluates it correctly",16 * (25 / 16),1,1,1,25,1,1,1,ANSWER: 25
+math-train-1729,math,1,\frac{1}{2},\dfrac{1}{2},llm,,\dfrac{1}{2},1,1,1,\frac{1}{2},1,1,1,ANSWER: \(\frac{1}{2}\)
+math-train-1935,math,11,16,17,llm,,17,1,1,1,17,1,1,1,ANSWER: 17
+math-train-7390,math,0,9 - 4 \sqrt{5},,llm,"expression, sub-step",3\pi - 7\alpha,0,1,0,,1,1,1,ANSWER: NONE
+math-train-1851,math,1,\dfrac{9}{100},,llm,"36 favorable outcomes, sub-step",36,0,1,0,36,0,1,0,ANSWER: 36
+math-train-3000,math,0,86,,llm,4 from circle equation,4,0,1,0,,1,1,1,ANSWER: NONE
+math-train-1261,math,3,935,935,llm,,935,1,1,1,935,1,1,1,ANSWER: 935
+math-train-1935,math,5,16,16,llm,,16,1,1,1,16,1,1,1,ANSWER: 16
+math-train-2261,math,2,\dfrac{4}{663},7/663,llm,,7/663,1,1,1,7/663,1,1,1,ANSWER: 7/663
+math-train-5036,math,15,9700,9700,llm,regex took 'is 9' from '9700 is the maximum when thousands digit is 9'; 9700 is correct,9,0,0,0,9700,1,1,1,ANSWER: 9700
+math-train-6883,math,0,"\left( \frac{4}{3}, -\frac{7}{3}, \frac{14}{3} \right)",,llm,t = -7/15 is a sub-variable,-7/15,0,1,0,,1,1,1,ANSWER: NONE
+math-train-3668,math,8,8 \sqrt{7},8\sqrt{7},llm,,8\sqrt{7},1,1,1,8\sqrt{7},1,1,1,ANSWER: 8\sqrt{7}
+math-train-4796,math,7,7,5,llm,states L_100 = 5 mod 8 (wrong),5 \mod 8,1,1,1,5,1,1,1,ANSWER: 5
+math-train-1261,math,4,935,935,llm,,935,1,1,1,935,1,1,1,ANSWER: 935

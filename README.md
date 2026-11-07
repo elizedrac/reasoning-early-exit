@@ -6,21 +6,23 @@ early, reproducing Zhang et al. 2025, "Reasoning Models Know When They're Right.
 - **Model:** `deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B`
 - **Data:** GSM8K, MATH (test = MATH-500), AIME 2024
 
-Each reasoning trace is split into chunks at reflection markers ("Wait", "Alternatively", ...).
-Each chunk's intermediate answer is labeled correct or incorrect with `math-verify`, and the hidden
-state at the chunk's last token is saved. A probe trained on these (hidden state, label) pairs
-predicts whether the model's current answer is correct. At test time we stop at the first chunk
-where the probe is confident enough.
+Each reasoning trace is split into pieces at reflection markers ("Wait", "Alternatively", ...).
+An LLM extractor (Qwen2.5-7B-Instruct, 4-bit) reports the answer each piece states, pieces without
+an answer are merged into the next one that has one, and `math-verify` labels each chunk's answer
+correct or incorrect. The hidden state at each chunk's last token is saved. A probe trained on these
+(hidden state, label) pairs predicts whether the model's current answer is correct. At test time we
+stop at the first chunk where the probe is confident enough.
 
 ## Repo layout
 
 ```
 data/          question-level splits (JSONL), stats.json, data.md, README.md (how to regenerate)
   trace_inputs/  subsampled question sets for trace generation
-scripts/       make_splits.py, sample_inputs.py, generate_traces.py, extract_hidden.py, make_handcheck.py
+scripts/       make_splits.py, sample_inputs.py, generate_traces.py, label_chunks.py, extract_hidden.py,
+               make_handcheck.py, run_all.sh
 eval/          score.py, scoring.md
 baselines/     simple-baseline.py/.md (stopping rules), strong-baseline.py/.md (probe)
-pilot/         pilot traces (200 training questions, 4,096-token limit), pilot script and Colab notebook, hand-check CSV
+pilot/         pilot traces, script, Colab notebook, labeling hand-check (see pilot/README.md)
 results/       outputs of baselines and scoring
 ```
 
@@ -36,16 +38,38 @@ Run from the repo root, in this order:
 6. `baselines/simple-baseline.py`, `baselines/strong-baseline.py`: stopping rules and probe
 7. `eval/score.py`: accuracy, tokens, token reduction, probe metrics
 
-Steps 3 to 5 for every input file:
+`scripts/run_all.sh` runs steps 3 to 5 for every file in `data/trace_inputs/` (train, then dev,
+then test). All steps are resumable: rerun the same command after a disconnect and finished
+questions are skipped. Extractor replies are cached in `cache/`.
+
+### Full run: Colab (NVIDIA GPU)
 
 ```bash
-pip install -r requirements.txt            # on a Mac also: pip install mlx-lm
-bash scripts/run_all.sh                    # NVIDIA: vllm + cuda
-BACKEND=mlx DEVICE=mps bash scripts/run_all.sh   # Apple silicon
+from google.colab import drive; drive.mount('/content/drive')
+!git clone https://<TOKEN>@github.com/elizedrac/reasoning-early-exit.git
+%cd reasoning-early-exit
+!pip install -q -r requirements.txt
+!OUT=/content/drive/MyDrive/cis530 bash scripts/run_all.sh
 ```
 
-All steps are resumable: rerun the same command after a disconnect and finished questions are
-skipped. LLM extractor replies are cached in `cache/`.
+Defaults: `BACKEND=vllm`, `DEVICE=cuda`, `MAX_TOKENS=16384`, `LAYERS=last`. On a T4 the extractor
+uses the AWQ 4-bit Qwen2.5-7B-Instruct (fp16 7B doesn't fit).
+
+### Small tests: Mac (Apple silicon)
+
+```bash
+pip install -r requirements.txt
+BACKEND=mlx DEVICE=mps MAX_TOKENS=2048 INPUTS=<dir with a small input file> bash scripts/run_all.sh
+```
+
+Measured on an M4 (24 GB): generation ~29 tokens/s, extraction ~10 s per piece, hidden states
+~2 s per trace. The full 4,249 questions would take about 5 to 6 days, so use Colab for that.
+
+### Labeling quality
+
+On 100 manually reviewed pilot chunks, the LLM extractor labels 95% of chunks correctly (regex:
+93%) and extracts the right answer 91% of the time (regex: 62%, 40% on MATH). Details in
+`pilot/README.md`.
 
 ## Large files
 
