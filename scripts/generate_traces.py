@@ -1,28 +1,32 @@
 """
-Generate reasoning traces with DeepSeek-R1-Distill-Qwen-1.5B (vLLM), split each trace into
-chunks at reflection markers, and label each chunk's intermediate answer against the gold answer.
+Generate reasoning traces with DeepSeek-R1-Distill-Qwen-1.5B.
 
-This is the pilot `pilot/sample_traces.py` with these changes:
-  * default --max-tokens 16384
-  * saves prompt_token_ids / token_ids and maps every chunk to a token span [start_token, end_token)
-  * truncated traces (finish_reason == "length") get a greedy forced answer
-  * resumable: results are appended per batch and IDs already in --out are skipped
-The prompt, chat template, sampling settings (temperature 0.6, top_p 0.95), chunking, and
-labeling logic are unchanged.
+Backends:
+    --backend vllm   NVIDIA GPU (e.g. Colab T4), batched
+    --backend mlx    Apple silicon, one question at a time, same Hugging Face weights
+Both use the pilot's prompt and chat template, temperature 0.6, top_p 0.95, default
+--max-tokens 16384, and capture the generated token IDs directly.
 
-Usage (on a GPU, e.g. Colab T4):
-    pip install vllm math-verify
-    python scripts/generate_traces.py --input data/trace_inputs/gsm8k_train.jsonl \
-        --out traces/gsm8k_train.jsonl
+Truncated traces (hit --max-tokens) get a greedy forced answer: append
+"\\n</think>\\n\\nFinal answer: \\\\boxed{" to prompt + trace, decode up to 32 tokens, and take the
+boxed answer. Chunking and labeling happen afterwards in scripts/label_chunks.py.
 
-Output: one JSON line per question. Token-span mismatches (decoded tokens differ from the chunk
-text by more than whitespace) are logged to <out>.mismatches.jsonl.
+Resumable: results are appended as they finish and IDs already in --out are skipped.
+
+Usage:
+    python scripts/generate_traces.py --input data/trace_inputs/gsm8k_train.jsonl --out traces/gsm8k_train.jsonl
+    python scripts/generate_traces.py --backend mlx --input ... --out ... --max-tokens 2048
+
+Output: one JSON line per question with id, dataset, split, problem, gold, prompt_token_ids,
+token_ids, num_tokens, finish_reason, truncated, trace, final_answer, final_correct,
+forced_answer, forced_correct.
 """
 import argparse
 import json
 import os
 import re
 import time
+import zlib
 from bisect import bisect_right
 
 from math_verify import parse, verify
@@ -33,7 +37,8 @@ FORCE_SUFFIX = "\n</think>\n\nFinal answer: \\boxed{"
 FORCE_MAX_TOKENS = 32
 
 # ---------------------------------------------------------------------------
-# Chunking and labeling (unchanged from the pilot)
+# Answer extraction and judging (from the pilot; the chunk-level regex labels are replaced by
+# label_chunks.py, but the final answer after </think> still uses extract_answer)
 # ---------------------------------------------------------------------------
 
 # Reflection markers where a new chunk starts
@@ -117,37 +122,6 @@ def is_correct(pred, gold):
         return None
 
 
-def chunk_trace(thinking):
-    """Split at reflection markers, merging pieces until each chunk contains an answer."""
-    pieces = [p for p in MARKERS.split(thinking) if p.strip()]
-    chunks, buf = [], ""
-    for p in pieces:
-        buf += p
-        if extract_answer(buf) is not None:
-            chunks.append(buf)
-            buf = ""
-    if buf.strip():
-        chunks.append(buf)  # trailing text with no answer
-    return chunks
-
-
-def label(trace, gold):
-    """Chunks of the thinking part with character spans, plus the final answer after </think>."""
-    thinking, finished, after = trace.partition("</think>")
-    out, pos = [], 0
-    for k, c in enumerate(chunk_trace(thinking)):
-        # Locate the chunk in the trace instead of summing lengths, since chunk_trace drops
-        # whitespace-only pieces and a running sum could drift.
-        start = thinking.find(c, pos)
-        assert start != -1, "chunk not found in trace"
-        pos = start + len(c)
-        ans = extract_answer(c)
-        out.append({"k": k, "text": c, "start_char": start, "end_char": pos, "answer": ans,
-                    "correct": is_correct(ans, gold) if ans is not None else None})
-    final = extract_answer(after) if finished else None  # a cut-off trace has no final answer
-    return out, final
-
-
 # ---------------------------------------------------------------------------
 # Character offsets -> token indices
 # ---------------------------------------------------------------------------
@@ -222,6 +196,75 @@ def add_token_spans(tok, trace, token_ids, chunks, rec_id, log):
 
 
 # ---------------------------------------------------------------------------
+# Generation backends
+# ---------------------------------------------------------------------------
+
+def chat_prompt(tok, problem):
+    return tok.apply_chat_template([{"role": "user", "content": PROMPT.format(problem=problem)}],
+                                   tokenize=False, add_generation_prompt=True)
+
+
+def force_suffix(trace):
+    # If </think> was already emitted, don't add a second one.
+    return FORCE_SUFFIX if "</think>" not in trace else FORCE_SUFFIX.replace("\n</think>", "")
+
+
+class VLLMBackend:
+    def __init__(self, args):
+        from vllm import LLM, SamplingParams
+        # Room for prompt + trace + forced-answer suffix and tokens.
+        self.llm = LLM(model=MODEL, dtype=args.dtype, max_model_len=args.max_tokens + 2048, seed=args.seed)
+        self.tok = self.llm.get_tokenizer()
+        self.params = SamplingParams(temperature=0.6, top_p=0.95, max_tokens=args.max_tokens, seed=args.seed)
+        self.force_params = SamplingParams(temperature=0.0, max_tokens=FORCE_MAX_TOKENS)
+
+    def generate(self, rows):
+        """[(prompt_token_ids, token_ids, trace, finish_reason)] for a batch of rows."""
+        outs = self.llm.generate([chat_prompt(self.tok, r["problem"]) for r in rows], self.params)
+        return [(list(o.prompt_token_ids), list(o.outputs[0].token_ids), o.outputs[0].text,
+                 o.outputs[0].finish_reason) for o in outs]
+
+    def force(self, id_lists):
+        outs = self.llm.generate([{"prompt_token_ids": ids} for ids in id_lists], self.force_params)
+        return [o.outputs[0].text for o in outs]
+
+
+class MLXBackend:
+    def __init__(self, args):
+        import importlib
+        import mlx.core as mx
+        from mlx_lm import load
+        from mlx_lm.sample_utils import make_sampler
+        self.mx = mx
+        self.generate_step = importlib.import_module("mlx_lm.generate").generate_step
+        self.model, self.tok = load(MODEL)  # converts the Hugging Face weights (bf16)
+        self.eos = set(self.tok.eos_token_ids)
+        self.sampler, self.greedy = make_sampler(temp=0.6, top_p=0.95), make_sampler(temp=0.0)
+        self.max_tokens, self.seed = args.max_tokens, args.seed
+
+    def _run(self, ids, max_tokens, sampler):
+        out, finish = [], "length"
+        for token, _ in self.generate_step(self.mx.array(ids), self.model, max_tokens=max_tokens, sampler=sampler):
+            out.append(int(token))
+            if out[-1] in self.eos:
+                finish = "stop"
+                break
+        return out, finish
+
+    def generate(self, rows):
+        results = []
+        for r in rows:
+            self.mx.random.seed(self.seed ^ zlib.crc32(r["id"].encode()))  # reproducible per question
+            prompt_ids = self.tok.encode(chat_prompt(self.tok, r["problem"]))
+            ids, finish = self._run(prompt_ids, self.max_tokens, self.sampler)
+            results.append((prompt_ids, ids, decode(self.tok, ids), finish))
+        return results
+
+    def force(self, id_lists):
+        return [decode(self.tok, self._run(ids, FORCE_MAX_TOKENS, self.greedy)[0]) for ids in id_lists]
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -244,11 +287,8 @@ def summarize(path):
         return
     n = len(rows)
     trunc = [r for r in rows if r["truncated"]]
-    n_chunks = sum(len(r["chunks"]) for r in rows)
-    n_labeled = sum(c["correct"] is not None for r in rows for c in r["chunks"])
     print(f"--- summary of {path}")
     print(f"questions:        {n}")
-    print(f"chunks:           {n_chunks} ({n_labeled} labeled, {n_chunks / n:.1f} per trace)")
     print(f"final accuracy:   {sum(r['final_correct'] for r in rows) / n:.2%}")
     print(f"truncated:        {len(trunc) / n:.2%} ({len(trunc)})")
     if trunc:
@@ -261,16 +301,16 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--input", required=True, help="JSONL from scripts/sample_inputs.py")
     p.add_argument("--out", required=True, help="output JSONL (appended to; existing IDs skipped)")
+    p.add_argument("--backend", choices=["vllm", "mlx"], default="vllm")
     p.add_argument("--n", type=int, default=None, help="only use the first N questions of --input")
     p.add_argument("--max-tokens", type=int, default=16384)
     p.add_argument("--dtype", default="half", choices=["half", "float16", "bfloat16"],
-                   help="half for T4; bfloat16 on A100/L4")
-    p.add_argument("--batch-size", type=int, default=64,
-                   help="questions per vLLM call; results are saved after each batch")
+                   help="vLLM only: half for T4; bfloat16 on A100/L4")
+    p.add_argument("--batch-size", type=int, default=None,
+                   help="questions per generate call, saved after each (default 64 vllm, 1 mlx)")
     p.add_argument("--seed", type=int, default=0)
     args = p.parse_args()
-
-    from vllm import LLM, SamplingParams  # imported here so labeling code runs without a GPU
+    batch_size = args.batch_size or (64 if args.backend == "vllm" else 1)
 
     rows = [json.loads(l) for l in open(args.input)]
     if args.n is not None:
@@ -278,80 +318,48 @@ def main():
     skip = done_ids(args.out)
     todo = [r for r in rows if r["id"] not in skip]
     print(f"{len(rows)} questions, {len(rows) - len(todo)} already in {args.out}, {len(todo)} to do")
-
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
-    mismatch_path = args.out + ".mismatches.jsonl"
-    n_mismatch = 0
-
-    def log(entry):
-        with open(mismatch_path, "a") as f:
-            f.write(json.dumps(entry) + "\n")
 
     if todo:
-        # Room for prompt + trace + forced-answer suffix and tokens.
-        llm = LLM(model=MODEL, dtype=args.dtype, max_model_len=args.max_tokens + 2048, seed=args.seed)
-        tok = llm.get_tokenizer()
-        params = SamplingParams(temperature=0.6, top_p=0.95, max_tokens=args.max_tokens, seed=args.seed)
-        force_params = SamplingParams(temperature=0.0, max_tokens=FORCE_MAX_TOKENS)
+        backend = (VLLMBackend if args.backend == "vllm" else MLXBackend)(args)
         t0, n_new_tokens = time.time(), 0
-
-        for b in range(0, len(todo), args.batch_size):
-            batch = todo[b:b + args.batch_size]
-            prompts = [tok.apply_chat_template(
-                [{"role": "user", "content": PROMPT.format(problem=r["problem"])}],
-                tokenize=False, add_generation_prompt=True) for r in batch]
-            outputs = llm.generate(prompts, params)
-
+        for b in range(0, len(todo), batch_size):
+            batch = todo[b:b + batch_size]
             recs = []
-            for r, o in zip(batch, outputs):
+            for r, (prompt_ids, token_ids, trace, finish) in zip(batch, backend.generate(batch)):
                 gold = str(r["answer"])
-                out = o.outputs[0]
-                trace, token_ids = out.text, list(out.token_ids)
-                truncated = out.finish_reason == "length"
-                chunks, final = label(trace, gold)
-                n_mismatch += add_token_spans(tok, trace, token_ids, chunks, r["id"], log)
-                for c in chunks:
-                    del c["start_char"], c["end_char"]
+                _, finished, after = trace.partition("</think>")
+                final = extract_answer(after) if finished else None  # a cut-off trace has no final answer
                 recs.append({
                     "id": r["id"], "dataset": r["dataset"], "split": r.get("split"),
                     "problem": r["problem"], "gold": gold,
-                    "prompt_token_ids": list(o.prompt_token_ids), "token_ids": token_ids,
-                    "num_tokens": len(token_ids), "finish_reason": out.finish_reason,
-                    "truncated": truncated, "trace": trace, "final_answer": final,
+                    "prompt_token_ids": prompt_ids, "token_ids": token_ids,
+                    "num_tokens": len(token_ids), "finish_reason": finish,
+                    "truncated": finish == "length", "trace": trace, "final_answer": final,
                     "final_correct": final is not None and is_correct(final, gold) is True,
                     "forced_answer": None, "forced_correct": None,
-                    "chunks": [{key: c[key] for key in
-                                ("k", "text", "start_token", "end_token", "answer", "correct")}
-                               for c in chunks],
                 })
                 n_new_tokens += len(token_ids)
 
             # Forced answer for truncated traces: close the thinking and ask for the boxed answer.
             forced = [rec for rec in recs if rec["truncated"]]
             if forced:
-                force_prompts = []
-                for rec in forced:
-                    # If </think> was already emitted, don't add a second one.
-                    suffix = FORCE_SUFFIX if "</think>" not in rec["trace"] else FORCE_SUFFIX.replace("\n</think>", "")
-                    ids = rec["prompt_token_ids"] + rec["token_ids"] + tok.encode(suffix, add_special_tokens=False)
-                    force_prompts.append({"prompt_token_ids": ids})
-                for rec, o in zip(forced, llm.generate(force_prompts, force_params)):
-                    ans = last_boxed("\\boxed{" + o.outputs[0].text)
+                id_lists = [rec["prompt_token_ids"] + rec["token_ids"] +
+                            backend.tok.encode(force_suffix(rec["trace"]), add_special_tokens=False) for rec in forced]
+                for rec, text in zip(forced, backend.force(id_lists)):
+                    ans = last_boxed("\\boxed{" + text)
                     rec["forced_answer"] = ans
                     rec["forced_correct"] = ans is not None and is_correct(ans, rec["gold"]) is True
 
             with open(args.out, "a") as f:
                 for rec in recs:
                     f.write(json.dumps(rec) + "\n")
-            done = b + len(batch)
-            el = time.time() - t0
-            print(f"[{done}/{len(todo)}] {el / 60:.1f} min elapsed, "
-                  f"{n_new_tokens / el:.0f} gen tok/s, est. {el / done * (len(todo) - done) / 60:.1f} min left",
-                  flush=True)
-
-        print(f"this session: {len(todo)} questions in {(time.time() - t0) / 60:.1f} min")
-        if n_mismatch:
-            print(f"WARNING: {n_mismatch} chunk token spans did not match their text; see {mismatch_path}")
+            done, el = b + len(batch), time.time() - t0
+            print(f"[{done}/{len(todo)}] {el / 60:.1f} min, {n_new_tokens / el:.0f} gen tok/s, "
+                  f"avg {n_new_tokens / done:.0f} tok/question, "
+                  f"ETA {el / done * (len(todo) - done) / 60:.1f} min", flush=True)
+        print(f"this session: {len(todo)} questions, {n_new_tokens} tokens in {(time.time() - t0) / 60:.1f} min "
+              f"({n_new_tokens / (time.time() - t0):.0f} tok/s)")
 
     summarize(args.out)
 
