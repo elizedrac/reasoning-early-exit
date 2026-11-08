@@ -5,9 +5,9 @@ Per trace:
   1. Split the thinking part (before </think>) at every reflection marker ("Wait", "Hmm",
      "Alternatively", ...).
   2. Extract each piece's answer with Qwen2.5-7B-Instruct, one call per piece. The prompt has 4
-     worked examples, the question, all previous reasoning as context, and the current piece,
-     and asks only about the current piece: the final answer it states most recently without
-     rejecting it, or NONE. If a reply has no ANSWER line, the pilot's regex extractor (generate_traces.extract_answer) is used instead.
+     worked examples, the question, the last --context-tokens (default 500) tokens of earlier
+     reasoning as context, and the current piece, and asks only about the current piece: the
+     final answer it states most recently without rejecting it, or NONE. If a reply has no ANSWER line, the pilot's regex extractor (generate_traces.extract_answer) is used instead.
   3. Merge pieces with no answer into the nearest piece that has one, following Zhang et al.
      (segment until an answer appears): a no-answer piece joins the next answered piece. Pieces
      after the last answer join the last answered chunk. A trace with no answer at all becomes
@@ -23,10 +23,11 @@ extract_hidden.py.
 Backends (the same model, 4-bit):
     --backend vllm   Qwen/Qwen2.5-7B-Instruct-AWQ          (NVIDIA; fp16 7B doesn't fit a T4)
     --backend mlx    mlx-community/Qwen2.5-7B-Instruct-4bit (Apple silicon)
-On vLLM, the pieces of --batch-traces traces (default 64) go out in one batched call, and
-prompts put the shared text first (examples, question, previous reasoning) so the prefix cache
-reuses it across a trace's pieces. mlx runs one prompt at a time, about 10 s per piece on an M4,
-so use it for small tests only. Replies are cached in --cache, keyed by model + prompt.
+On vLLM, whole traces are added to a batch until it holds --batch-chunks pieces (default 2048,
+across many traces), and the batch goes out in one call; the shared instructions are a common
+prefix, so the prefix cache reuses them. Replies stop at the first newline (at most
+MAX_ANSWER_TOKENS tokens). mlx runs one prompt at a time, so use it for small tests only.
+Replies are cached in --cache, keyed by model + prompt.
 
 Hand-check (100 reviewed pilot chunks, see pilot/README.md): label accuracy 96% for the LLM
 extractor vs. 93% for the regex; extraction accuracy 92% vs. 62%.
@@ -52,7 +53,7 @@ from generate_traces import (MARKERS, MODEL as GEN_MODEL, add_token_spans, done_
                              extract_answer as regex_extract, is_correct, last_boxed)
 
 LABELERS = {"vllm": "Qwen/Qwen2.5-7B-Instruct-AWQ", "mlx": "mlx-community/Qwen2.5-7B-Instruct-4bit"}
-MAX_ANSWER_TOKENS = 48
+MAX_ANSWER_TOKENS = 32  # "ANSWER: <answer>"; the longest MATH gold answers are ~40 tokens, most under 15
 
 SYSTEM = "You read a student's step-by-step math reasoning and report the answer they have reached."
 
@@ -153,9 +154,20 @@ def parse_reply(text):
     return clean(m.group(1).strip().splitlines()[0] if m.group(1).strip() else ""), True
 
 
-def chunk_prompt(tok, problem, context, chunk, max_context_chars):
-    if len(context) > max_context_chars:
-        context = "[...] " + context[-max_context_chars:]
+def tail_tokens(tok, text, n):
+    """The last n tokens of text (as text), prefixed with "[...] " if anything was cut."""
+    if n <= 0:
+        return "[...] " if text.strip() else ""
+    window = text[-8 * n:]  # a token is rarely over 8 chars; avoids tokenizing whole traces
+    ids = tok.encode(window, add_special_tokens=False)
+    if len(ids) <= n and len(window) == len(text):
+        return text
+    return "[...] " + tok.decode(ids[-n:])
+
+
+def chunk_prompt(tok, problem, context, chunk, context_tokens, max_chunk_tokens):
+    context = tail_tokens(tok, context, context_tokens)
+    chunk = tail_tokens(tok, chunk, max_chunk_tokens)  # guard for runaway pieces; answers come late
     user = CHUNK_TEMPLATE.format(problem=problem.strip(), context=context.strip() or "(none, this is the start)",
                                  chunk=chunk.strip())
     return tok.apply_chat_template([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
@@ -179,10 +191,10 @@ class Extractor:
                     pass
         if backend == "vllm":
             from vllm import LLM, SamplingParams
-            self.llm = LLM(model=model, dtype="half", max_model_len=max_model_len,
+            self.llm = LLM(model=model, dtype="half", max_model_len=max_model_len, max_num_seqs=256,
                            gpu_memory_utilization=gpu_mem, enable_prefix_caching=True, seed=0)
             self.tok = self.llm.get_tokenizer()
-            self.params = SamplingParams(temperature=0.0, max_tokens=MAX_ANSWER_TOKENS)
+            self.params = SamplingParams(temperature=0.0, max_tokens=MAX_ANSWER_TOKENS, stop=["\n"])
         else:
             from mlx_lm import load
             from mlx_lm.sample_utils import make_sampler
@@ -217,10 +229,10 @@ class Extractor:
 
 
 def piece_prompts(ex, problem, texts, args):
-    """One prompt per piece, each with all previous pieces as context."""
+    """One prompt per piece, each with the tail of the earlier pieces as context."""
     prompts, context = [], ""
     for t in texts:
-        prompts.append(chunk_prompt(ex.tok, problem, context, t, args.max_context_chars))
+        prompts.append(chunk_prompt(ex.tok, problem, context, t, args.context_tokens, args.max_chunk_tokens))
         context += t
     return prompts
 
@@ -260,12 +272,14 @@ def label_traces(args, ex):
         with open(mismatch_path, "a") as f:
             f.write(json.dumps(entry) + "\n")
 
-    batch_size = args.batch_traces or (64 if args.backend == "vllm" else 1)
-    for b in range(0, len(todo), batch_size):
-        batch = todo[b:b + batch_size]
-        # Build every piece prompt in the batch and send them to the extractor in one call.
+    batch_chunks = args.batch_chunks or (2048 if args.backend == "vllm" else 1)
+    i = 0
+    while i < len(todo):
+        # Add whole traces until the batch holds batch_chunks pieces, then send all of them in one call.
         prepared, prompts = [], []
-        for rec in batch:
+        while i < len(todo) and (not prompts or len(prompts) < batch_chunks):
+            rec = todo[i]
+            i += 1
             thinking = rec["trace"].partition("</think>")[0]
             spans = split_pieces(thinking)
             texts = [thinking[x:y] for x, y in spans]
@@ -290,8 +304,7 @@ def label_traces(args, ex):
                            chunks=[{key: c[key] for key in ("k", "text", "start_token", "end_token", "answer",
                                                             "correct", "n_pieces")} for c in chunks])
                 f.write(json.dumps(out) + "\n")
-        i = b + len(batch)
-        if i % args.log_every < len(batch) or i == len(todo):
+        if len(prepared) > 1 or i % args.log_every == 0 or i == len(todo):
             el = time.time() - t0
             print(f"[{i}/{len(todo)}] {el / 60:.1f} min, {el / i:.1f} s/trace, "
                   f"est. {el / i * (len(todo) - i) / 60:.1f} min left", flush=True)
@@ -331,7 +344,7 @@ def same_answer(a, b):
 
 def handcheck(args, ex):
     """Score the regex and the LLM extractor on the 100 reviewed hand-check chunks (the pilot's regex
-    chunks; the LLM sees all earlier chunks of the trace as context).
+    chunks; the LLM sees the tail of the earlier chunks of the trace as context).
 
     Truth: `true_answer` (blank = the chunk states no final answer).
     extraction: extracted answer equals the true answer (both none counts as equal)
@@ -351,7 +364,8 @@ def handcheck(args, ex):
     for r in rows:
         d, k = traces[r["id"]], int(r["k"])
         context = "".join(c["text"] for c in d["chunks"][:k])
-        prompts.append(chunk_prompt(ex.tok, d["problem"], context, d["chunks"][k]["text"], args.max_context_chars))
+        prompts.append(chunk_prompt(ex.tok, d["problem"], context, d["chunks"][k]["text"],
+                                    args.context_tokens, args.max_chunk_tokens))
     t0 = time.time()
     replies = ex.generate(prompts)
     print(f"{ex.n_llm_calls} new LLM calls in {(time.time() - t0) / 60:.1f} min (the rest were cached)")
@@ -407,11 +421,13 @@ def main():
     p.add_argument("--model", default=None, help="default: the 4-bit Qwen2.5-7B-Instruct for the backend")
     p.add_argument("--cache", default="cache/label_cache.jsonl")
     p.add_argument("--n", type=int, default=None, help="only use the first N traces")
-    p.add_argument("--max-model-len", type=int, default=32768)
-    p.add_argument("--max-context-chars", type=int, default=60000,
-                   help="previous reasoning longer than this keeps only its last N characters")
-    p.add_argument("--batch-traces", type=int, default=None,
-                   help="traces whose pieces go to the extractor in one call (default 64 vllm, 1 mlx)")
+    p.add_argument("--max-model-len", type=int, default=8192)
+    p.add_argument("--context-tokens", type=int, default=500,
+                   help="earlier reasoning shown as context: its last N tokens")
+    p.add_argument("--max-chunk-tokens", type=int, default=6000,
+                   help="a longer piece keeps only its last N tokens (keeps prompts under --max-model-len)")
+    p.add_argument("--batch-chunks", type=int, default=None,
+                   help="pieces (across traces) sent to the extractor in one call (default 2048 vllm, 1 mlx)")
     p.add_argument("--gpu-mem", type=float, default=0.9, help="vLLM gpu_memory_utilization")
     p.add_argument("--log-every", type=int, default=10)
     args = p.parse_args()
