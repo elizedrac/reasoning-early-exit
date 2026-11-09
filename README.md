@@ -67,8 +67,11 @@ Measured on an M4 (24 GB): generation ~29 tokens/s, extraction ~10 s per piece, 
 
 ### Labeling quality
 
-On 100 manually reviewed pilot chunks, the LLM extractor labels 96% of chunks correctly (regex:
-93%) and extracts the right answer 92% of the time (regex: 62%, 40% on MATH). Details in
+On 100 manually reviewed pilot chunks, the LLM extractor labels 94% of chunks correctly (regex:
+93%) and extracts the right answer 89% of the time (regex: 62%, 40% on MATH), on the Colab T4
+(vLLM, AWQ). Each piece's prompt gets only the last 500 tokens of earlier reasoning
+(`--context-tokens`) to speed up labeling (full context took ~28 s per GSM8K trace on a T4).
+More context didn't help accuracy: 2,000 tokens scored 93%. Details in
 `pilot/README.md`.
 
 ## Large files

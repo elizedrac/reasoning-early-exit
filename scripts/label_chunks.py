@@ -29,8 +29,8 @@ prefix, so the prefix cache reuses them. Replies stop at the first newline (at m
 MAX_ANSWER_TOKENS tokens). mlx runs one prompt at a time, so use it for small tests only.
 Replies are cached in --cache, keyed by model + prompt.
 
-Hand-check (100 reviewed pilot chunks, see pilot/README.md): label accuracy 96% for the LLM
-extractor vs. 93% for the regex; extraction accuracy 92% vs. 62%.
+Hand-check (100 reviewed pilot chunks, see pilot/README.md), vLLM on a T4: label accuracy 94% for
+the LLM extractor vs. 93% for the regex; extraction accuracy 89% vs. 62%.
 
 Usage:
     python scripts/label_chunks.py --backend mlx --input traces/gsm8k_train.jsonl --out labeled/gsm8k_train.jsonl
