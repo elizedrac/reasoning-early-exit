@@ -7,8 +7,8 @@ early, reproducing Zhang et al. 2025, "Reasoning Models Know When They're Right.
 - **Data:** GSM8K, MATH (test = MATH-500), AIME 2024
 
 Each reasoning trace is split into pieces at reflection markers ("Wait", "Alternatively", ...).
-An LLM extractor (Qwen2.5-7B-Instruct, 4-bit) reports the answer each piece states, pieces without
-an answer are merged into the next one that has one, and `math-verify` labels each chunk's answer
+An LLM extractor (Qwen2.5-7B-Instruct, 4-bit) reports the answer each piece states (kept only if the
+piece itself writes that answer), pieces without an answer are merged into the next one that has one, and `math-verify` labels each chunk's answer
 correct or incorrect. The hidden state at each chunk's last token is saved. A probe trained on these
 (hidden state, label) pairs predicts whether the model's current answer is correct. At test time we
 stop at the first chunk where the probe is confident enough.
@@ -18,8 +18,8 @@ stop at the first chunk where the probe is confident enough.
 ```
 data/          question-level splits (JSONL), stats.json, data.md, README.md (how to regenerate)
   trace_inputs/  subsampled question sets for trace generation
-scripts/       make_splits.py, sample_inputs.py, generate_traces.py, label_chunks.py, extract_hidden.py,
-               make_handcheck.py, run_all.sh
+scripts/       make_splits.py, sample_inputs.py, generate_traces.py, label_chunks.py, relabel.py,
+               extract_hidden.py, make_handcheck.py, run_all.sh
 eval/          score.py, scoring.md
 baselines/     simple-baseline.py/.md (stopping rules), strong-baseline.py/.md (probe)
 pilot/         pilot traces, script, Colab notebook, labeling hand-check (see pilot/README.md)
@@ -34,13 +34,16 @@ Run from the repo root, in this order:
 2. `scripts/sample_inputs.py`: pick the questions to generate traces for (`data/trace_inputs/`)
 3. `scripts/generate_traces.py`: generate traces (`--backend vllm` on NVIDIA, `mlx` on Apple silicon)
 4. `scripts/label_chunks.py`: split at reflection markers, extract answers with Qwen2.5-7B-Instruct, judge with math-verify
-5. `scripts/extract_hidden.py`: save chunk-end hidden states (`--device cuda|mps|cpu`)
-6. `baselines/simple-baseline.py`, `baselines/strong-baseline.py`: stopping rules and probe
-7. `eval/score.py`: accuracy, tokens, token reduction, probe metrics
+5. `scripts/relabel.py`: re-ground, re-merge and re-judge labeled files in place, without the LLM. Fixes files labeled before answer grounding existed; harmless on newer ones.
+6. `scripts/extract_hidden.py`: save chunk-end hidden states (`--device cuda|mps|cpu`)
+7. `baselines/simple-baseline.py`, `baselines/strong-baseline.py`: stopping rules and probe
+8. `eval/score.py`: accuracy, tokens, token reduction, probe metrics
 
-`scripts/run_all.sh` runs steps 3 to 5 for every file in `data/trace_inputs/` (train, then dev,
+`scripts/run_all.sh` runs steps 3 to 6 for every file in `data/trace_inputs/` (train, then dev,
 then test). All steps are resumable: rerun the same command after a disconnect and finished
-questions are skipped. Extractor replies are cached in `cache/`.
+questions are skipped. Extractor replies are cached in `cache/`. To save GPU time, run Colab with
+`HIDDEN=0` and extract hidden states on a Mac (`--device mps`, ~2 s per trace) from the same Drive
+folder via Google Drive for desktop.
 
 ### Full run: Colab (NVIDIA GPU)
 

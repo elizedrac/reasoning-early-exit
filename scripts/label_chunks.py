@@ -7,18 +7,25 @@ Per trace:
   2. Extract each piece's answer with Qwen2.5-7B-Instruct, one call per piece. The prompt has 4
      worked examples, the question, the last --context-tokens (default 500) tokens of earlier
      reasoning as context, and the current piece, and asks only about the current piece: the
-     final answer it states most recently without rejecting it, or NONE. If a reply has no ANSWER line, the pilot's regex extractor (generate_traces.extract_answer) is used instead.
-  3. Merge pieces with no answer into the nearest piece that has one, following Zhang et al.
+     final answer it states most recently without rejecting it, or NONE. If a reply has no
+     ANSWER line, the pilot's regex extractor (generate_traces.extract_answer) is used instead.
+     Pieces with no digit or math symbol get NONE without an LLM call (~20% of pieces).
+  3. Ground the answers: Unicode math is rewritten as LaTeX (100√3 -> 100\\sqrt{3}), and an answer
+     is dropped unless the piece itself writes it (same number, normalized substring, or equal to
+     the piece's \\boxed{}). Without this, the extractor repeats an answer from the context for
+     pieces that state none.
+  4. Merge pieces with no answer into the nearest piece that has one, following Zhang et al.
      (segment until an answer appears): a no-answer piece joins the next answered piece. Pieces
      after the last answer join the last answered chunk. A trace with no answer at all becomes
      one unlabeled chunk.
-  4. Judge each chunk's answer against gold with math-verify. Unparseable answers get correct = null.
-  5. Map chunks to token spans [start_token, end_token) using the saved token_ids. Records
+  5. Judge each chunk's answer against gold with math-verify. Unparseable answers get correct = null.
+  6. Map chunks to token spans [start_token, end_token) using the saved token_ids. Records
      without token_ids (pilot traces) get null spans.
 
 Output: input records with `chunks` replaced (fields k, text, start_token, end_token, answer,
-correct, n_pieces) plus labeler, piece_answers, piece_sources ("llm" or "regex"). Works with
-extract_hidden.py.
+correct, n_pieces) plus labeler, piece_answers_raw (extractor output), piece_answers (after
+grounding), piece_sources ("llm", "regex", or "skip"). Works with extract_hidden.py.
+scripts/relabel.py reruns steps 3 to 6 on existing output without the LLM.
 
 Backends (the same model, 4-bit):
     --backend vllm   Qwen/Qwen2.5-7B-Instruct-AWQ          (NVIDIA; fp16 7B doesn't fit a T4)
@@ -41,6 +48,7 @@ Resumable: IDs already in --out are skipped.
 """
 import argparse
 import csv
+import fractions
 import hashlib
 import json
 import os
@@ -134,10 +142,74 @@ def merge_pieces(spans, answers):
     return [tuple(g) for g in groups]
 
 
+SUPERSCRIPT = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺", "0123456789-+")
+VULGAR = {"½": "\\frac{1}{2}", "⅓": "\\frac{1}{3}", "⅔": "\\frac{2}{3}", "¼": "\\frac{1}{4}", "¾": "\\frac{3}{4}"}
+UNICODE_MATH = {"−": "-", "–": "-", "×": "\\times ", "·": "\\cdot ", "÷": "/", "π": "\\pi ", "∞": "\\infty ",
+                "≤": "\\le ", "≥": "\\ge ", "≠": "\\ne ", "°": "^\\circ"}
+
+
+def to_latex(s):
+    """Unicode math (100√3, x², ½, π) as LaTeX, so math-verify can parse it."""
+    for u, l in {**UNICODE_MATH, **VULGAR}.items():
+        s = s.replace(u, l)
+    s = re.sub(r"[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]+", lambda m: "^{" + m.group().translate(SUPERSCRIPT) + "}", s)
+    s = re.sub(r"√\s*\(([^()]*)\)", r"\\sqrt{\1}", s)
+    s = re.sub(r"√\s*(\{[^{}]*\})", r"\\sqrt\1", s)
+    s = re.sub(r"√\s*([A-Za-z0-9.]+)", r"\\sqrt{\1}", s)
+    return s
+
+
+# A piece with none of these can't state an answer we could ground, so it gets NONE without an LLM call.
+MATHY = re.compile(r"[0-9\\√⁰¹²³⁴⁵⁶⁷⁸⁹½⅓⅔¼¾π∞]")
+
+
+def squash_math(s):
+    """Normalize LaTeX/plain math text for substring matching."""
+    s = to_latex(s)
+    s = re.sub(r"(?<!\\)\bsqrt\s*\(?\s*([A-Za-z0-9.]+)\s*\)?", r"\\sqrt{\1}", s)
+    s = re.sub(r"\\(?:left|right|displaystyle|[,;!: ])", "", s)
+    s = re.sub(r"\\[dt]frac", r"\\frac", s)
+    s = re.sub(r"(?<=\d),(?=\d{3})", "", s)
+    s = re.sub(r"[\s$]", "", s)
+    s = re.sub(r"\^\{(\w)\}", r"^\1", s)
+    return s
+
+
+NUM = re.compile(r"-?\d+(?:\.\d+)?(?:/\d+)?|\\frac\{-?\d+\}\{\d+\}")
+
+
+def as_number(s):
+    m = re.fullmatch(r"\\frac\{(-?\d+)\}\{(\d+)\}", s)
+    try:
+        return fractions.Fraction(int(m.group(1)), int(m.group(2))) if m else fractions.Fraction(s)
+    except (ValueError, ZeroDivisionError):
+        return None
+
+
+def grounded(ans, text):
+    """True if the answer is actually written in the piece (not only in the context or computed by the
+    extractor): as a normalized substring, as the same number, or math-verify-equal to the piece's \\boxed{}."""
+    a, t = squash_math(ans), squash_math(text)
+    if not a:
+        return False
+    value = as_number(a.rstrip("%"))
+    if value is not None:
+        return any(as_number(n) == value for n in NUM.findall(t))
+    if a in t:
+        return True
+    boxed = last_boxed(text)
+    return bool(boxed) and is_correct(boxed, ans) is True
+
+
+def ground_answers(texts, answers):
+    """Drop answers that the piece doesn't state itself (see grounded)."""
+    return [a if a is not None and MATHY.search(t) and grounded(a, t) else None for t, a in zip(texts, answers)]
+
+
 def clean(ans):
     if ans is None:
         return None
-    ans = str(ans).strip()
+    ans = to_latex(str(ans).strip())
     if "\\boxed" in ans:
         ans = last_boxed(ans) or ans
     ans = re.sub(r"\\[()\[\]]", "", ans).replace("$", "").strip().rstrip(".").strip()
@@ -229,21 +301,50 @@ class Extractor:
 
 
 def piece_prompts(ex, problem, texts, args):
-    """One prompt per piece, each with the tail of the earlier pieces as context."""
-    prompts, context = [], ""
-    for t in texts:
-        prompts.append(chunk_prompt(ex.tok, problem, context, t, args.context_tokens, args.max_chunk_tokens))
+    """One prompt per piece that could state an answer (MATHY), each with the tail of the earlier
+    pieces as context. Returns (prompts, indices of the pieces they belong to)."""
+    prompts, idx, context = [], [], ""
+    for i, t in enumerate(texts):
+        if MATHY.search(t):
+            prompts.append(chunk_prompt(ex.tok, problem, context, t, args.context_tokens, args.max_chunk_tokens))
+            idx.append(i)
         context += t
-    return prompts
+    return prompts, idx
 
 
-def answers_from_replies(texts, replies):
-    """(answer or None, source) per piece; the regex extractor for a reply with no ANSWER line."""
-    out = []
-    for t, reply in zip(texts, replies):
+def answers_from_replies(texts, replies, idx=None):
+    """(answer or None, source) per piece; the regex extractor for a reply with no ANSWER line.
+    Pieces not in idx (no LLM call) get (None, "skip")."""
+    idx = list(range(len(texts))) if idx is None else idx
+    out = [(None, "skip")] * len(texts)
+    for i, reply in zip(idx, replies):
         ans, ok = parse_reply(reply)
-        out.append((ans, "llm") if ok else (regex_extract(t), "regex"))
+        out[i] = (ans, "llm") if ok else (regex_extract(texts[i]), "regex")
     return out
+
+
+def build_record(rec, raw_answers, sources, labeler, gen_tok, log):
+    """Ground the piece answers, merge pieces into chunks, judge them, and add token spans.
+    Returns (output record, number of token-span mismatches)."""
+    thinking = rec["trace"].partition("</think>")[0]
+    spans = split_pieces(thinking)
+    texts = [thinking[x:y] for x, y in spans]
+    assert len(texts) == len(raw_answers), f"{rec['id']}: {len(texts)} pieces but {len(raw_answers)} answers"
+    raw_answers = [clean(a) for a in raw_answers]
+    answers = ground_answers(texts, raw_answers)
+    chunks = [{"k": k, "text": thinking[x:y], "start_char": x, "end_char": y, "answer": ans,
+               "correct": is_correct(ans, str(rec["gold"])) if ans is not None else None, "n_pieces": n}
+              for k, (x, y, ans, n) in enumerate(merge_pieces(spans, answers))]
+    n_bad = 0
+    if rec.get("token_ids"):
+        n_bad = add_token_spans(gen_tok, rec["trace"], rec["token_ids"], chunks, rec["id"], log)
+    else:
+        for c in chunks:
+            c["start_token"] = c["end_token"] = None
+    out = dict(rec, labeler=labeler, piece_answers_raw=raw_answers, piece_answers=answers, piece_sources=sources,
+               chunks=[{key: c[key] for key in ("k", "text", "start_token", "end_token", "answer", "correct",
+                                                "n_pieces")} for c in chunks])
+    return out, n_bad
 
 
 # ---------------------------------------------------------------------------
@@ -281,28 +382,18 @@ def label_traces(args, ex):
             rec = todo[i]
             i += 1
             thinking = rec["trace"].partition("</think>")[0]
-            spans = split_pieces(thinking)
-            texts = [thinking[x:y] for x, y in spans]
-            ps = piece_prompts(ex, rec["problem"], texts, args)
-            prepared.append((rec, thinking, spans, texts, len(prompts), len(prompts) + len(ps)))
+            texts = [thinking[x:y] for x, y in split_pieces(thinking)]
+            ps, idx = piece_prompts(ex, rec["problem"], texts, args)
+            prepared.append((rec, texts, idx, len(prompts), len(prompts) + len(ps)))
             prompts += ps
         replies = ex.generate(prompts)
 
         with open(args.out, "a") as f:
-            for rec, thinking, spans, texts, lo, hi in prepared:
-                extracted = answers_from_replies(texts, replies[lo:hi])
-                answers = [a for a, _ in extracted]
-                chunks = [{"k": k, "text": thinking[x:y], "start_char": x, "end_char": y, "answer": ans,
-                           "correct": is_correct(ans, str(rec["gold"])) if ans is not None else None, "n_pieces": n}
-                          for k, (x, y, ans, n) in enumerate(merge_pieces(spans, answers))]
-                if rec.get("token_ids"):
-                    n_mismatch += add_token_spans(gen_tok, rec["trace"], rec["token_ids"], chunks, rec["id"], log)
-                else:
-                    for c in chunks:
-                        c["start_token"] = c["end_token"] = None
-                out = dict(rec, labeler=ex.model, piece_answers=answers, piece_sources=[s for _, s in extracted],
-                           chunks=[{key: c[key] for key in ("k", "text", "start_token", "end_token", "answer",
-                                                            "correct", "n_pieces")} for c in chunks])
+            for rec, texts, idx, lo, hi in prepared:
+                extracted = answers_from_replies(texts, replies[lo:hi], idx)
+                out, bad = build_record(rec, [a for a, _ in extracted], [s for _, s in extracted], ex.model,
+                                        gen_tok, log)
+                n_mismatch += bad
                 f.write(json.dumps(out) + "\n")
         if len(prepared) > 1 or i % args.log_every == 0 or i == len(todo):
             el = time.time() - t0
@@ -328,12 +419,13 @@ def summarize(path):
         s["labeled"] += sum(c["correct"] is not None for c in r["chunks"])
         s["pos"] += sum(c["correct"] is True for c in r["chunks"])
         s["regex"] += sum(x == "regex" for x in r["piece_sources"])
+        s["skip"] = s.get("skip", 0) + sum(x == "skip" for x in r["piece_sources"])
     print(f"--- summary of {path}")
     for d, s in stats.items():
         n = s["traces"]
         print(f"{d:9s} traces {n:5d}  pieces/trace {s['pieces'] / n:5.1f}  chunks/trace {s['chunks'] / n:4.1f}  "
               f"labeled/trace {s['labeled'] / n:4.1f}  positive {s['pos'] / max(s['labeled'], 1):.0%}  "
-              f"regex fallback {s['regex'] / max(s['pieces'], 1):.1%} of pieces")
+              f"regex fallback {s['regex'] / max(s['pieces'], 1):.1%}  no LLM call {s['skip'] / max(s['pieces'], 1):.0%} of pieces")
 
 
 def same_answer(a, b):
@@ -380,6 +472,7 @@ def handcheck(args, ex):
         text = d["chunks"][k]["text"]
         truth = r["true_answer"].strip() or None
         (llm, src), = answers_from_replies([text], [reply])
+        llm, = ground_answers([text], [llm])
         preds = {"regex": regex_extract(text), "LLM": llm}
         t3 = label3(truth, r["gold"])
         row = {"id": r["id"], "dataset": r["dataset"], "k": r["k"], "gold": r["gold"], "true_answer": truth or "",
