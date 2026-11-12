@@ -47,6 +47,10 @@ folder via Google Drive for desktop.
 
 ### Full run: Colab (NVIDIA GPU)
 
+> **You probably don't need to run this.** All processed data (traces, labeled chunks, hidden
+> states) is in the shared Google Drive folder `cis530/`. The full run takes several days of free
+> Colab GPU time, so only run it to add more samples. It resumes from what is already there.
+
 ```bash
 from google.colab import drive; drive.mount('/content/drive')
 !git clone https://<TOKEN>@github.com/elizedrac/reasoning-early-exit.git
