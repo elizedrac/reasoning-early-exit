@@ -49,6 +49,32 @@ python baselines/simple-baseline.py --traces labeled/gsm8k_test.jsonl --rule bud
     --force --backend vllm --out results/simple/budget1024forced_gsm8k_test.jsonl
 ```
 
+## Sample output
+
+The predictions file has one JSON line per question. Here are the first two GSM8K test questions under
+each rule (from `results/simple/{full,first,budget1024}_gsm8k_test.jsonl` in the shared Drive):
+
+```json
+{"id": "gsm8k-test-0", "dataset": "gsm8k", "rule": "full", "answer": "18", "tokens_used": 924, "full_tokens": 924}
+{"id": "gsm8k-test-1", "dataset": "gsm8k", "rule": "full", "answer": "3", "tokens_used": 1047, "full_tokens": 1047}
+{"id": "gsm8k-test-0", "dataset": "gsm8k", "rule": "first", "answer": "18", "tokens_used": 351, "full_tokens": 924}
+{"id": "gsm8k-test-1", "dataset": "gsm8k", "rule": "first", "answer": "3", "tokens_used": 288, "full_tokens": 1047}
+{"id": "gsm8k-test-0", "dataset": "gsm8k", "rule": "budget1024", "answer": "18", "tokens_used": 924, "full_tokens": 924}
+{"id": "gsm8k-test-1", "dataset": "gsm8k", "rule": "budget1024", "answer": "3", "tokens_used": 1024, "full_tokens": 1047}
+```
+
+`first` stops at the first stated answer, which saves most of the tokens here. Under `budget1024`, question 0
+fits in the budget and uses full reasoning, while question 1 is cut at 1,024 tokens.
+
+Scoring `first_gsm8k_test.jsonl` with `eval/score.py` prints:
+
+```
+n                1319
+accuracy         0.7180
+avg_tokens       538.3912
+token_reduction  0.7713
+```
+
 ## Results
 
 Test sets. Tokens are generated tokens per question; reduction is relative to full reasoning.
