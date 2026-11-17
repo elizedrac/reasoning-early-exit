@@ -19,7 +19,7 @@ train (20,873 chunks, 63% correct) and tuned on GSM8K + MATH dev (4,254 chunks, 
 Hyperparameters are grid-searched on dev (`--tune`): learning rate {1e-4, 1e-3, 1e-2}, weight
 decay {0, 1e-4, 1e-3}, alpha {0.5, 1, 2}, and for the MLP h {128, 256, 512}. We keep the config
 with the lowest dev Brier score, which rewards both ranking and calibration. Selecting by dev
-ROC-AUC instead picked alpha = 0.5, with nearly the same AUC but about twice the ECE.
+ROC-AUC instead picked alpha = 0.5, with nearly the same AUC but 2.5 to 3 times the test ECE.
 
 | Probe | lr | weight decay | alpha | h | epochs |
 |---|---|---|---|---|---|
