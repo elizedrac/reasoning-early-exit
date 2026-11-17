@@ -92,3 +92,9 @@ Looking across tau on test (not a tuned result), the largest savings with no acc
 38% (linear, tau = 0.9) and 45% (mlp, tau = 0.9) on GSM8K, and 12% (mlp, tau = 0.975) on
 MATH-500. Our probe matches the paper on GSM8K and on probe quality, but on MATH-500 it needs a
 higher tau than 0.85 to avoid losing accuracy.
+
+Our savings are not directly comparable to the paper's. Our tau = 0.85 matches theirs by
+coincidence (it was picked on dev). Our token count also favors early exit: full reasoning counts
+every generated token, including the answer text after `</think>`, while early exit counts only up
+to the chunk end and leaves out the few tokens needed to write the final answer. Labels
+(Qwen + `math-verify` vs. Gemini), chunking, and the 16,384-token limit also differ.
