@@ -67,9 +67,21 @@ python scripts/make_splits.py --out data --seed 0
 
 The script checks that no question ID or problem text appears in more than one file.
 
-## Derived data (to be generated in Milestone 2)
+## Derived data
 
-The questions above are the inputs. For each question, we will generate a reasoning trace with DeepSeek-R1-Distill-Qwen-1.5B (vLLM) and split its thinking part at reflection markers ("Wait", "Alternatively", "Let me check", etc.). An LLM extractor (Qwen2.5-7B-Instruct, 4-bit) reads each piece with the question and the last 500 tokens of earlier reasoning as context and reports the final answer the piece states, or none. An answer is kept only if the piece itself writes it (same number, same expression, or its `\boxed{}`), since the extractor otherwise repeats answers from the context; Unicode math such as `100√3` is rewritten as LaTeX first. Following Zhang et al., pieces without an answer are merged into the next piece that has one (pieces after the last answer join the last answered chunk). Each chunk's answer is labeled correct or incorrect against `answer` with Hugging Face `math-verify`, and we save the hidden state at the chunk's last token. These chunk-level examples (hidden state, label) are the training data for the probe. They inherit the question-level splits above.
+The questions above are the inputs. For each question, we generated a reasoning trace with DeepSeek-R1-Distill-Qwen-1.5B (up to 16,384 tokens) and split its thinking part at reflection markers ("Wait", "Alternatively", "Let me check", etc.). An LLM extractor (Qwen2.5-7B-Instruct, 4-bit) reads each piece with the question and the last 500 tokens of earlier reasoning as context and reports the final answer the piece states, or none. An answer is kept only if the piece itself writes it (same number, same expression, or its `\boxed{}`), since the extractor otherwise repeats answers from the context; Unicode math such as `100√3` is rewritten as LaTeX first. Following Zhang et al., pieces without an answer are merged into the next piece that has one (pieces after the last answer join the last answered chunk). Each chunk's answer is labeled correct or incorrect against `answer` with Hugging Face `math-verify`, and we save the hidden state at the chunk's last token. These chunk-level examples (hidden state, label) are the training data for the probe. They inherit the question-level splits above.
+
+| File | Traces | Chunks (per trace) | Labeled chunks | Correct chunks | Final accuracy | Avg tokens | Hit token limit |
+|---|---|---|---|---|---|---|---|
+| gsm8k_train | 1,000 | 10,435 (10.4) | 10,435 | 63.1% | 88.6% | 2,156 | 1.8% |
+| math_train | 1,000 | 10,451 (10.5) | 10,438 | 63.8% | 84.3% | 4,970 | 9.3% |
+| gsm8k_dev | 200 | 1,775 (8.9) | 1,775 | 66.9% | 88.0% | 2,107 | 0.5% |
+| math_dev | 200 | 2,480 (12.4) | 2,479 | 67.6% | 86.5% | 4,820 | 7.0% |
+| gsm8k_test | 1,319 | 12,763 (9.7) | 12,763 | 62.9% | 84.8% | 2,354 | 1.7% |
+| math500_test | 500 | 5,948 (11.9) | 5,941 | 57.0% | 85.2% | 4,885 | 9.4% |
+| aime2024_test | 30 | 276 (9.2) | 275 | 26.5% | 30.0% | 11,685 | 40.0% |
+
+Labeled chunks are those with an answer (and so a label and a hidden state); the 22 unlabeled chunks come from traces where no piece states an answer, which form a single unlabeled chunk. Final accuracy uses the trace's final answer, or an answer forced at the token limit for truncated traces. Traces, labeled chunks, and hidden states are in the shared Google Drive folder (`traces/`, `labeled/`, `hidden/`).
 
 Some MATH answers include units or formatting (for example `13.5\text{ pounds}`, `\$3.47`). We keep them as is and rely on `math-verify` to normalize them during labeling, and will check its handling of these cases in Milestone 2.
 

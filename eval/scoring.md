@@ -1,112 +1,90 @@
 # Scoring
 
-`eval/score.py` scores one predictions file (one or more stopping settings) against gold answers.
-Every method (full reasoning, first answer, token budget, probe at each τ) writes the same format,
-so they are scored the same way.
-
-## Prediction format
-
-One JSON line per question and setting:
-
-```json
-{"id": "gsm8k-test-0", "setting": "tau=0.9", "answer": "18", "tokens_used": 412,
- "probe_scores": [0.31, 0.88, 0.95], "chunk_labels": [0, 1, 1]}
-```
-
-| field | required | meaning |
-|---|---|---|
-| `id` | yes | question ID, matching the gold file |
-| `answer` | yes | bare answer string (no `\boxed{}`), or `null` if there is none |
-| `tokens_used` | yes | generated tokens up to the stopping point (see *Average tokens*) |
-| `setting` | no | label for the stopping rule or threshold; rows are grouped by it. Default `"default"` |
-| `probe_scores` | no | probe P(correct) for each chunk of the trace, in order |
-| `chunk_labels` | no | the chunk's label: 1 correct, 0 incorrect, `null` if the chunk has no answer |
-
-Several settings can share one file (e.g. the τ sweep). Probe scores do not depend on τ, so the
-probe metrics count each question once, however many settings it appears in.
+`eval/score.py` scores a predictions file (one line per question: `id`, `answer`, `tokens_used`,
+`full_tokens`, optionally `probe_scores` and `chunk_labels`) against gold answers.
 
 ## Metric definitions
 
 ### Accuracy
-A prediction is correct when `math-verify` judges it equal to the gold answer, using the same
-`is_correct` as the labeling pipeline (`scripts/generate_traces.py`): both strings are wrapped in
-`\boxed{}`, parsed, and compared with `verify(gold, pred)`. The denominator is every question in
-the gold file, so a missing prediction, a `null` answer, or an answer that fails to parse counts as
-wrong. The script warns when a setting does not cover every gold question.
+An answer is correct if `math-verify` judges it equal to the gold answer (both wrapped in
+`\boxed{}` and parsed). This is the same judge used to label chunks. A missing or unparseable
+answer counts as wrong.
 
 ### Average tokens
-Mean `tokens_used` over the predicted questions. Tokens are generated tokens of the
-reasoning model, not counting the prompt. Conventions for each method:
-
-- **Full reasoning:** `num_tokens` of the trace, i.e. everything generated, thinking plus the answer
-  after `</think>`. Truncated traces count all `--max-tokens` tokens; the ≤32 forced-answer tokens are
-  not counted.
-- **Early exit (first answer, probe):** `end_token` of the chunk where we stop, i.e. thinking tokens
-  up to and including that chunk. The few tokens needed to write the answer after stopping are not
-  counted.
-- **Token budget N:** `min(num_tokens, N)`.
-
-Because full reasoning also counts the answer section after `</think>` (usually a short summary),
-token reduction slightly favors early exit. This matches how Zhang et al. (2025) report savings
-against the full trace.
+Mean number of generated tokens used before stopping, counted from the start of the model's
+output (prompt tokens excluded). For full reasoning this is every generated token, including
+the text after `</think>`.
 
 ### Token reduction vs. full reasoning
-Pooled over the questions that are in both the predictions and the `--full` traces file, so long
-traces count for more than short ones. With `--full`, the script also prints full-reasoning
-accuracy and average tokens on the same gold questions as a reference row.
+One minus the total tokens used, divided by the total tokens of full reasoning on the same
+questions.
 
 ### Probe metrics: ROC-AUC, ECE, Brier score
-Chunk-level, pooled over every chunk with a non-null label in the predictions file.
-
-- **ROC-AUC:** `sklearn.metrics.roc_auc_score`. Not reported when only one class is present.
-- **ECE:** 10 equal-width bins on the probe score (`--bins`); a score of exactly 1.0 falls in the
-  last bin.
-- **Brier score:** mean squared error between score and label.
+Computed over all labeled chunks, from the probe's predicted probability that the chunk's answer
+is correct and the chunk's 0/1 label. ROC-AUC measures ranking, ECE (10 equal-width bins) and
+Brier score measure calibration.
 
 ## Equations
 
-Let $Q$ be the gold questions, $\hat a_q$ the predicted answer, $a_q$ the gold answer, $t_q$ the
-tokens used, $T_q$ the full trace's tokens, and $P \subseteq Q$ the predicted questions.
+With questions $i = 1..n$, prediction $\hat a_i$, gold $a_i$, tokens used $t_i$ and full-reasoning
+tokens $T_i$:
 
-$$\text{Accuracy} = \frac{1}{|Q|} \sum_{q \in Q} \mathbb{1}[\texttt{verify}(a_q, \hat a_q)]$$
-
-$$\text{Avg tokens} = \frac{1}{|P|}\sum_{q \in P} t_q \qquad
-\text{Token reduction} = 1 - \frac{\sum_{q \in P \cap F} t_q}{\sum_{q \in P \cap F} T_q}$$
-
-where $F$ is the set of questions in the `--full` traces file.
-
-For chunk scores $s_i \in [0,1]$ and labels $y_i \in \{0,1\}$, $i = 1..N$, with bins
-$B_b = \{i : \lfloor 10\, s_i \rfloor = b\}$ (score 1.0 in $B_9$):
-
-$$\text{ECE} = \sum_{b=0}^{9} \frac{|B_b|}{N}\,\Big|\,\overline{y}_{B_b} - \overline{s}_{B_b}\Big|
+$$\text{Accuracy} = \frac{1}{n}\sum_i \mathbb{1}[\hat a_i \equiv a_i]
 \qquad
-\text{Brier} = \frac{1}{N}\sum_{i=1}^{N} (s_i - y_i)^2$$
+\text{Reduction} = 1 - \frac{\sum_i t_i}{\sum_i T_i}$$
+
+With chunks $j = 1..N$, probe score $p_j$, label $y_j$, and bins $B_1..B_{10}$ of $p$:
+
+$$\text{AUC} = P\big(p_j > p_k \mid y_j = 1,\ y_k = 0\big)$$
+
+the probability that a random correct chunk scores higher than a random incorrect one (ties count
+one half).
+
+
+$$\text{ECE} = \sum_b \frac{|B_b|}{N}\,\Big|\overline{y}_{B_b} - \overline{p}_{B_b}\Big|
+\qquad
+\text{Brier} = \frac{1}{N}\sum_j (p_j - y_j)^2$$
 
 ## Citations
 
-- Zhang, A., Chen, Y., Pan, J., Zhao, C., Panda, A., Li, J., & He, H. (2025). *Reasoning Models Know
-  When They're Right: Probing Hidden States for Self-Verification.* arXiv:2504.05419.
-- Hugging Face. *Math-Verify.* https://github.com/huggingface/Math-Verify
-- Guo, C., Pleiss, G., Sun, Y., & Weinberger, K. Q. (2017). *On Calibration of Modern Neural
-  Networks.* ICML. (ECE)
-- Brier, G. W. (1950). *Verification of forecasts expressed in terms of probability.* Monthly
-  Weather Review, 78(1), 1–3.
+- Zhang et al. 2025, "Reasoning Models Know When They're Right."
+- Hugging Face `math-verify`, https://github.com/huggingface/Math-Verify
+- Fawcett 2006, "An Introduction to ROC Analysis" (ROC-AUC).
+- Naeini et al. 2015, "Obtaining Well Calibrated Probabilities Using Bayesian Binning" (ECE).
+- Brier 1950, "Verification of Forecasts Expressed in Terms of Probability."
 
 ## Example
 
+Options: `--pred` (predictions JSONL), `--gold` (labeled JSONL with the gold `answer`), `--out`
+(optional, writes the metrics as JSON). All generated data (traces, labeled chunks, hidden states) is in our shared Google Drive folder `cis530/`; it is too large for the repo. `labeled/` is in that folder.
+
+Simple baseline (no probe scores, so only answer metrics):
+
 ```bash
-python eval/score.py --pred results/probe_gsm8k_test.jsonl \
-    --gold data/trace_inputs/gsm8k_test.jsonl --full traces/gsm8k_test.jsonl \
-    --out results/probe_gsm8k_test_metrics.json
+python eval/score.py --pred results/simple/first_gsm8k_test.jsonl --gold labeled/gsm8k_test.jsonl \
+    --out results/simple/first_gsm8k_test.metrics.json
 ```
 
 ```
-setting  n_pred  accuracy  avg_tokens  token_reduction
-tau=0.5  ...
-tau=0.9  ...
-(full traces)  ...
-
-probe (N chunks, P% positive): ROC-AUC ...  ECE ...  Brier ...
+n                1319
+accuracy         0.7180
+avg_tokens       538.3912
+token_reduction  0.7713
 ```
 
-`--out` writes the same numbers as JSON: `{"settings": {setting: metrics}, "full_reference": ..., "probe": ...}`.
+Probe early exit (adds probe metrics):
+
+```bash
+python eval/score.py --pred results/probe_linear/probe_gsm8k_test_tau0.85.jsonl \
+    --gold labeled/gsm8k_test.jsonl --out results/probe_linear/probe_gsm8k_test_tau0.85.metrics.json
+```
+
+```
+n                1319
+accuracy         0.8431
+avg_tokens       1241.3328
+token_reduction  0.4727
+roc_auc          0.8558
+ece              0.0375
+brier            0.1489
+```

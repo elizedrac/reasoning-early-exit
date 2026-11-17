@@ -10,3 +10,5 @@ __pycache__/
 .venv/
 cache/
 labeled/
+# per-question predictions (regenerate with baselines/); summary.json and *.metrics.json stay tracked
+results/**/*.jsonl

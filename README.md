@@ -39,6 +39,8 @@ Run from the repo root, in this order:
 7. `baselines/simple-baseline.py`, `baselines/strong-baseline.py`: stopping rules and probe
 8. `eval/score.py`: accuracy, tokens, token reduction, probe metrics
 
+Steps 7 and 8 are under [Baselines and scoring](#baselines-and-scoring).
+
 `scripts/run_all.sh` runs steps 3 to 6 for every file in `data/trace_inputs/` (train, then dev,
 then test). All steps are resumable: rerun the same command after a disconnect and finished
 questions are skipped. Extractor replies are cached in `cache/`. To save GPU time, run Colab with
@@ -80,6 +82,49 @@ On 100 manually reviewed pilot chunks, the LLM extractor labels 94% of chunks co
 (`--context-tokens`) to speed up labeling (full context took ~28 s per GSM8K trace on a T4).
 More context didn't help accuracy: 2,000 tokens scored 93%. Details in
 `pilot/README.md`.
+
+## Baselines and scoring
+
+These need only the labeled files and hidden states (no GPU, a few minutes on a laptop). Set
+`D` to the shared Drive folder, e.g. on a Mac with Google Drive for desktop:
+
+```bash
+D="$HOME/Library/CloudStorage/GoogleDrive-<you>/My Drive/cis530"
+```
+
+**Simple baselines** (stopping rules `full`, `first`, `budget`; see `baselines/simple-baseline.md`):
+
+```bash
+python baselines/simple-baseline.py --traces "$D/labeled/gsm8k_test.jsonl" --rule first \
+    --out results/simple/first_gsm8k_test.jsonl
+python baselines/simple-baseline.py --traces "$D/labeled/gsm8k_test.jsonl" --rule budget --budget 1024 \
+    --out results/simple/budget1024_gsm8k_test.jsonl
+```
+
+**Strong baseline** (hidden-state probe; trains on GSM8K + MATH train, picks tau on dev, tests on
+GSM8K, MATH-500 and AIME 2024; see `baselines/strong-baseline.md`):
+
+```bash
+python baselines/strong-baseline.py --data "$D" --probe linear --tune --out-dir results/probe_linear
+python baselines/strong-baseline.py --data "$D" --probe mlp --tune --out-dir results/probe_mlp
+```
+
+`--tune` grid-searches the probe's hyperparameters on dev (a few minutes); drop it for a quick run
+with the defaults.
+
+It prints probe AUC / ECE / Brier and accuracy vs. tokens for each tau, and writes
+`summary.json` plus one predictions file per test set and tau.
+
+**Scoring** any predictions file (accuracy, average tokens, token reduction, and probe metrics
+when present; see `eval/scoring.md`):
+
+```bash
+python eval/score.py --pred results/simple/first_gsm8k_test.jsonl --gold "$D/labeled/gsm8k_test.jsonl" \
+    --out results/simple/first_gsm8k_test.metrics.json
+```
+
+Per-question predictions (`results/**/*.jsonl`) are not in git; rerun the commands above or get
+`results.zip` from the shared Milestone 2 folder. Summaries and `*.metrics.json` are tracked.
 
 ## Large files
 
