@@ -43,7 +43,7 @@ $$\text{ECE} = \sum_b \frac{|B_b|}{N}\,\Big|\overline{y}_{B_b} - \overline{p}_{B
 
 - Zhang et al. 2025, "Reasoning Models Know When They're Right."
 - Hugging Face `math-verify`, https://github.com/huggingface/Math-Verify
-- Guo et al. 2017, "On Calibration of Modern Neural Networks" (ECE).
+- Naeini et al. 2015, "Obtaining Well Calibrated Probabilities Using Bayesian Binning" (ECE).
 - Brier 1950, "Verification of Forecasts Expressed in Terms of Probability."
 
 ## Example
