@@ -14,13 +14,27 @@ regenerated.
 
 ## How to run
 
+`labeled/` is the folder of labeled traces in the shared Drive folder `cis530/` (set
+`D` to it as in the README and use `"$D/labeled/..."`). Options: `--traces` (labeled JSONL),
+`--rule full|first|budget`, `--budget N` (with `--rule budget`), `--out` (predictions JSONL).
+
 ```bash
+python baselines/simple-baseline.py --traces labeled/gsm8k_test.jsonl --rule full \
+    --out results/simple/full_gsm8k_test.jsonl
 python baselines/simple-baseline.py --traces labeled/gsm8k_test.jsonl --rule first \
     --out results/simple/first_gsm8k_test.jsonl
 python baselines/simple-baseline.py --traces labeled/gsm8k_test.jsonl --rule budget --budget 1024 \
     --out results/simple/budget1024_gsm8k_test.jsonl
-python eval/score.py --pred results/simple/first_gsm8k_test.jsonl --gold labeled/gsm8k_test.jsonl
 ```
+
+Score a predictions file (see `eval/scoring.md`):
+
+```bash
+python eval/score.py --pred results/simple/first_gsm8k_test.jsonl --gold labeled/gsm8k_test.jsonl \
+    --out results/simple/first_gsm8k_test.metrics.json
+```
+
+Swap `gsm8k_test` for `math500_test` or `aime2024_test` for the other test sets.
 
 ## Results
 

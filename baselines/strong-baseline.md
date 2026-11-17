@@ -44,6 +44,19 @@ laptop CPU; without it, under a minute. Each run writes per-tau
 predictions (scored with `eval/score.py`) and `summary.json` (including every grid config's dev
 metrics).
 
+Other options: `--alpha`, `--lr`, `--weight-decay`, `--hidden` (set the probe without `--tune`),
+`--tau` (fix tau instead of picking it on dev), `--max-drop` (dev accuracy drop allowed when
+picking tau, default 0.01), `--train` / `--dev` / `--test` (file names under `hidden/` and
+`labeled/`).
+
+Score one predictions file (includes probe AUC / ECE / Brier):
+
+```bash
+python eval/score.py --pred results/probe_linear/probe_gsm8k_test_tau0.85.jsonl \
+    --gold <cis530 folder>/labeled/gsm8k_test.jsonl \
+    --out results/probe_linear/probe_gsm8k_test_tau0.85.metrics.json
+```
+
 ## Results
 
 Probe quality on test chunks:

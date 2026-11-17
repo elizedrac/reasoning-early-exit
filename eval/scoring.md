@@ -48,8 +48,14 @@ $$\text{ECE} = \sum_b \frac{|B_b|}{N}\,\Big|\overline{y}_{B_b} - \overline{p}_{B
 
 ## Example
 
+Options: `--pred` (predictions JSONL), `--gold` (labeled JSONL with the gold `answer`), `--out`
+(optional, writes the metrics as JSON). `labeled/` is in the shared Drive folder `cis530/`.
+
+Simple baseline (no probe scores, so only answer metrics):
+
 ```bash
-python eval/score.py --pred results/simple/first_gsm8k_test.jsonl --gold labeled/gsm8k_test.jsonl
+python eval/score.py --pred results/simple/first_gsm8k_test.jsonl --gold labeled/gsm8k_test.jsonl \
+    --out results/simple/first_gsm8k_test.metrics.json
 ```
 
 ```
@@ -57,4 +63,21 @@ n                1319
 accuracy         0.7180
 avg_tokens       538.3912
 token_reduction  0.7713
+```
+
+Probe early exit (adds probe metrics):
+
+```bash
+python eval/score.py --pred results/probe_linear/probe_gsm8k_test_tau0.85.jsonl \
+    --gold labeled/gsm8k_test.jsonl --out results/probe_linear/probe_gsm8k_test_tau0.85.metrics.json
+```
+
+```
+n                1319
+accuracy         0.8431
+avg_tokens       1241.3328
+token_reduction  0.4727
+roc_auc          0.8558
+ece              0.0375
+brier            0.1489
 ```
