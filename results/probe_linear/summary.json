@@ -1,0 +1,563 @@
+{
+  "args": {
+    "data": "/Users/elizedracopoulos/Library/CloudStorage/GoogleDrive-elizedrac@gmail.com/My Drive/cis530",
+    "train": [
+      "gsm8k_train",
+      "math_train"
+    ],
+    "dev": [
+      "gsm8k_dev",
+      "math_dev"
+    ],
+    "test": [
+      "gsm8k_test",
+      "math500_test",
+      "aime2024_test"
+    ],
+    "probe": "linear",
+    "alpha": 1.0,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "hidden": 256,
+    "tune": true,
+    "tau": [
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.85,
+      0.9,
+      0.95,
+      0.975,
+      0.99
+    ],
+    "max_drop": 0.01,
+    "out_dir": "results/probe_linear"
+  },
+  "config": {
+    "lr": 0.0001,
+    "weight_decay": 0.001,
+    "alpha": 2.0,
+    "hidden": 256
+  },
+  "grid": [
+    {
+      "lr": 0.0001,
+      "weight_decay": 0,
+      "alpha": 0.5,
+      "hidden": 256,
+      "epochs": 61,
+      "dev_roc_auc": 0.8669223001487079,
+      "dev_ece": 0.16703224705710512,
+      "dev_brier": 0.17019631118030326
+    },
+    {
+      "lr": 0.0001,
+      "weight_decay": 0,
+      "alpha": 1.0,
+      "hidden": 256,
+      "epochs": 84,
+      "dev_roc_auc": 0.8670391061452514,
+      "dev_ece": 0.0971826817632629,
+      "dev_brier": 0.14811502750104003
+    },
+    {
+      "lr": 0.0001,
+      "weight_decay": 0,
+      "alpha": 2.0,
+      "hidden": 256,
+      "epochs": 84,
+      "dev_roc_auc": 0.8663789638680117,
+      "dev_ece": 0.04365278770975271,
+      "dev_brier": 0.13981089397808386
+    },
+    {
+      "lr": 0.0001,
+      "weight_decay": 0.0001,
+      "alpha": 0.5,
+      "hidden": 256,
+      "epochs": 45,
+      "dev_roc_auc": 0.8684033499457418,
+      "dev_ece": 0.16658861888071777,
+      "dev_brier": 0.1687407748778429
+    },
+    {
+      "lr": 0.0001,
+      "weight_decay": 0.0001,
+      "alpha": 1.0,
+      "hidden": 256,
+      "epochs": 84,
+      "dev_roc_auc": 0.867579679273341,
+      "dev_ece": 0.09812803138970239,
+      "dev_brier": 0.1478966162253891
+    },
+    {
+      "lr": 0.0001,
+      "weight_decay": 0.0001,
+      "alpha": 2.0,
+      "hidden": 256,
+      "epochs": 84,
+      "dev_roc_auc": 0.8663847413689161,
+      "dev_ece": 0.043669081295399946,
+      "dev_brier": 0.13980858081831826
+    },
+    {
+      "lr": 0.0001,
+      "weight_decay": 0.001,
+      "alpha": 0.5,
+      "hidden": 256,
+      "epochs": 45,
+      "dev_roc_auc": 0.8684176681001567,
+      "dev_ece": 0.1666054047293196,
+      "dev_brier": 0.16871580938264796
+    },
+    {
+      "lr": 0.0001,
+      "weight_decay": 0.001,
+      "alpha": 1.0,
+      "hidden": 256,
+      "epochs": 84,
+      "dev_roc_auc": 0.8676397150436076,
+      "dev_ece": 0.0983606323499765,
+      "dev_brier": 0.14788244777820814
+    },
+    {
+      "lr": 0.0001,
+      "weight_decay": 0.001,
+      "alpha": 2.0,
+      "hidden": 256,
+      "epochs": 84,
+      "dev_roc_auc": 0.8664119961014428,
+      "dev_ece": 0.04334634220267881,
+      "dev_brier": 0.1397882227616952
+    },
+    {
+      "lr": 0.001,
+      "weight_decay": 0,
+      "alpha": 0.5,
+      "hidden": 256,
+      "epochs": 19,
+      "dev_roc_auc": 0.8700243157429364,
+      "dev_ece": 0.16779537412263415,
+      "dev_brier": 0.1694979241406561
+    },
+    {
+      "lr": 0.001,
+      "weight_decay": 0,
+      "alpha": 1.0,
+      "hidden": 256,
+      "epochs": 19,
+      "dev_roc_auc": 0.867033328644347,
+      "dev_ece": 0.09842890278760479,
+      "dev_brier": 0.14904292612717362
+    },
+    {
+      "lr": 0.001,
+      "weight_decay": 0,
+      "alpha": 2.0,
+      "hidden": 256,
+      "epochs": 19,
+      "dev_roc_auc": 0.8643716590973032,
+      "dev_ece": 0.04400549276112776,
+      "dev_brier": 0.14115161038971727
+    },
+    {
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "alpha": 0.5,
+      "hidden": 256,
+      "epochs": 19,
+      "dev_roc_auc": 0.8679871186849404,
+      "dev_ece": 0.16821962415125113,
+      "dev_brier": 0.1709510873754671
+    },
+    {
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "alpha": 1.0,
+      "hidden": 256,
+      "epochs": 19,
+      "dev_roc_auc": 0.8670386037538684,
+      "dev_ece": 0.09844730340204778,
+      "dev_brier": 0.14903750171857
+    },
+    {
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "alpha": 2.0,
+      "hidden": 256,
+      "epochs": 24,
+      "dev_roc_auc": 0.8644831899843254,
+      "dev_ece": 0.04636635975448631,
+      "dev_brier": 0.14126038705589927
+    },
+    {
+      "lr": 0.001,
+      "weight_decay": 0.001,
+      "alpha": 0.5,
+      "hidden": 256,
+      "epochs": 19,
+      "dev_roc_auc": 0.8688816265423416,
+      "dev_ece": 0.16750711552012468,
+      "dev_brier": 0.17009835478582416
+    },
+    {
+      "lr": 0.001,
+      "weight_decay": 0.001,
+      "alpha": 1.0,
+      "hidden": 256,
+      "epochs": 19,
+      "dev_roc_auc": 0.8671157208311564,
+      "dev_ece": 0.09861229899973502,
+      "dev_brier": 0.1489896908537013
+    },
+    {
+      "lr": 0.001,
+      "weight_decay": 0.001,
+      "alpha": 2.0,
+      "hidden": 256,
+      "epochs": 24,
+      "dev_roc_auc": 0.8645753788031028,
+      "dev_ece": 0.04631411550151903,
+      "dev_brier": 0.14117175275540306
+    },
+    {
+      "lr": 0.01,
+      "weight_decay": 0,
+      "alpha": 0.5,
+      "hidden": 256,
+      "epochs": 13,
+      "dev_roc_auc": 0.8595862555765443,
+      "dev_ece": 0.1560545027388724,
+      "dev_brier": 0.17184650245872907
+    },
+    {
+      "lr": 0.01,
+      "weight_decay": 0,
+      "alpha": 1.0,
+      "hidden": 256,
+      "epochs": 13,
+      "dev_roc_auc": 0.8606792080302237,
+      "dev_ece": 0.07720640982630048,
+      "dev_brier": 0.15019343190155068
+    },
+    {
+      "lr": 0.01,
+      "weight_decay": 0,
+      "alpha": 2.0,
+      "hidden": 256,
+      "epochs": 13,
+      "dev_roc_auc": 0.8590525903299706,
+      "dev_ece": 0.05461069619806372,
+      "dev_brier": 0.14498845325753024
+    },
+    {
+      "lr": 0.01,
+      "weight_decay": 0.0001,
+      "alpha": 0.5,
+      "hidden": 256,
+      "epochs": 13,
+      "dev_roc_auc": 0.8599182106828505,
+      "dev_ece": 0.1566367719459369,
+      "dev_brier": 0.17187241551507082
+    },
+    {
+      "lr": 0.01,
+      "weight_decay": 0.0001,
+      "alpha": 1.0,
+      "hidden": 256,
+      "epochs": 13,
+      "dev_roc_auc": 0.8606928981954101,
+      "dev_ece": 0.07721759120066594,
+      "dev_brier": 0.15017179090194263
+    },
+    {
+      "lr": 0.01,
+      "weight_decay": 0.0001,
+      "alpha": 2.0,
+      "hidden": 256,
+      "epochs": 13,
+      "dev_roc_auc": 0.859056358265343,
+      "dev_ece": 0.05453167773256848,
+      "dev_brier": 0.14497218842504755
+    },
+    {
+      "lr": 0.01,
+      "weight_decay": 0.001,
+      "alpha": 0.5,
+      "hidden": 256,
+      "epochs": 13,
+      "dev_roc_auc": 0.8602666191069491,
+      "dev_ece": 0.15705473824732516,
+      "dev_brier": 0.17158932782405195
+    },
+    {
+      "lr": 0.01,
+      "weight_decay": 0.001,
+      "alpha": 1.0,
+      "hidden": 256,
+      "epochs": 13,
+      "dev_roc_auc": 0.8608506490896668,
+      "dev_ece": 0.07774797463215719,
+      "dev_brier": 0.14998488926035414
+    },
+    {
+      "lr": 0.01,
+      "weight_decay": 0.001,
+      "alpha": 2.0,
+      "hidden": 256,
+      "epochs": 13,
+      "dev_roc_auc": 0.8590910232707689,
+      "dev_ece": 0.05345437975069355,
+      "dev_brier": 0.144828521566612
+    }
+  ],
+  "epochs": 84,
+  "best_dev_loss": 0.4737814962863922,
+  "dev_full_accuracy": 0.8725,
+  "best_tau": 0.85,
+  "dev": {
+    "0.5": {
+      "n": 400,
+      "accuracy": 0.8075,
+      "avg_tokens": 1190.08,
+      "token_reduction": 0.6564183734524529,
+      "roc_auc": 0.8664119961014428,
+      "ece": 0.04334634220267881,
+      "brier": 0.1397882227616952
+    },
+    "0.6": {
+      "n": 400,
+      "accuracy": 0.8175,
+      "avg_tokens": 1268.5525,
+      "token_reduction": 0.6337629980245385,
+      "roc_auc": 0.8664119961014428,
+      "ece": 0.04334634220267881,
+      "brier": 0.1397882227616952
+    },
+    "0.7": {
+      "n": 400,
+      "accuracy": 0.84,
+      "avg_tokens": 1392.505,
+      "token_reduction": 0.5979773352416711,
+      "roc_auc": 0.8664119961014428,
+      "ece": 0.04334634220267881,
+      "brier": 0.1397882227616952
+    },
+    "0.8": {
+      "n": 400,
+      "accuracy": 0.855,
+      "avg_tokens": 1601.545,
+      "token_reduction": 0.5376265157896181,
+      "roc_auc": 0.8664119961014428,
+      "ece": 0.04334634220267881,
+      "brier": 0.1397882227616952
+    },
+    "0.85": {
+      "n": 400,
+      "accuracy": 0.8675,
+      "avg_tokens": 1863.4475,
+      "token_reduction": 0.4620140469246098,
+      "roc_auc": 0.8664119961014428,
+      "ece": 0.04334634220267881,
+      "brier": 0.1397882227616952
+    },
+    "0.9": {
+      "n": 400,
+      "accuracy": 0.875,
+      "avg_tokens": 2119.43,
+      "token_reduction": 0.3881107095710643,
+      "roc_auc": 0.8664119961014428,
+      "ece": 0.04334634220267881,
+      "brier": 0.1397882227616952
+    },
+    "0.95": {
+      "n": 400,
+      "accuracy": 0.875,
+      "avg_tokens": 2820.1025,
+      "token_reduction": 0.1858233026512469,
+      "roc_auc": 0.8664119961014428,
+      "ece": 0.04334634220267881,
+      "brier": 0.1397882227616952
+    },
+    "0.975": {
+      "n": 400,
+      "accuracy": 0.8725,
+      "avg_tokens": 3230.465,
+      "token_reduction": 0.0673497418619573,
+      "roc_auc": 0.8664119961014428,
+      "ece": 0.04334634220267881,
+      "brier": 0.1397882227616952
+    },
+    "0.99": {
+      "n": 400,
+      "accuracy": 0.8725,
+      "avg_tokens": 3451.85,
+      "token_reduction": 0.0034348635401396654,
+      "roc_auc": 0.8664119961014428,
+      "ece": 0.04334634220267881,
+      "brier": 0.1397882227616952
+    }
+  },
+  "test": {
+    "gsm8k_test": {
+      "full_accuracy": 0.8476118271417741,
+      "probe": {
+        "roc_auc": 0.8558205109697339,
+        "ece": 0.037497434175239666,
+        "brier": 0.148868809982153
+      },
+      "0.5": {
+        "accuracy": 0.8248673237300985,
+        "avg_tokens": 779.4685367702805,
+        "token_reduction": 0.6688783974281142
+      },
+      "0.6": {
+        "accuracy": 0.8309325246398787,
+        "avg_tokens": 847.7369219105383,
+        "token_reduction": 0.6398776924268565
+      },
+      "0.7": {
+        "accuracy": 0.8324488248673237,
+        "avg_tokens": 957.2251705837756,
+        "token_reduction": 0.5933666112821457
+      },
+      "0.8": {
+        "accuracy": 0.8369977255496588,
+        "avg_tokens": 1123.5943896891586,
+        "token_reduction": 0.5226922481102005
+      },
+      "0.85": {
+        "accuracy": 0.8430629264594389,
+        "avg_tokens": 1241.3328278999243,
+        "token_reduction": 0.4726764508001555
+      },
+      "0.9": {
+        "accuracy": 0.8483699772554966,
+        "avg_tokens": 1452.054586808188,
+        "token_reduction": 0.3831609370687342
+      },
+      "0.95": {
+        "accuracy": 0.8514025777103866,
+        "avg_tokens": 1878.420773313116,
+        "token_reduction": 0.20203873867577637
+      },
+      "0.975": {
+        "accuracy": 0.8476118271417741,
+        "avg_tokens": 2211.9992418498864,
+        "token_reduction": 0.06033316381955445
+      },
+      "0.99": {
+        "accuracy": 0.8476118271417741,
+        "avg_tokens": 2336.0416982562547,
+        "token_reduction": 0.0076393923398022645
+      }
+    },
+    "math500_test": {
+      "full_accuracy": 0.852,
+      "probe": {
+        "roc_auc": 0.7948145174189242,
+        "ece": 0.0757824998758041,
+        "brier": 0.19361511207567358
+      },
+      "0.5": {
+        "accuracy": 0.78,
+        "avg_tokens": 2136.47,
+        "token_reduction": 0.5626284342799308
+      },
+      "0.6": {
+        "accuracy": 0.79,
+        "avg_tokens": 2289.436,
+        "token_reduction": 0.5313137053476564
+      },
+      "0.7": {
+        "accuracy": 0.806,
+        "avg_tokens": 2527.62,
+        "token_reduction": 0.4825534096217773
+      },
+      "0.8": {
+        "accuracy": 0.816,
+        "avg_tokens": 2875.116,
+        "token_reduction": 0.41141509754556693
+      },
+      "0.85": {
+        "accuracy": 0.826,
+        "avg_tokens": 3100.534,
+        "token_reduction": 0.36526821806610477
+      },
+      "0.9": {
+        "accuracy": 0.836,
+        "avg_tokens": 3580.982,
+        "token_reduction": 0.26691238156614183
+      },
+      "0.95": {
+        "accuracy": 0.84,
+        "avg_tokens": 4173.224,
+        "token_reduction": 0.14567042131152308
+      },
+      "0.975": {
+        "accuracy": 0.848,
+        "avg_tokens": 4596.036,
+        "token_reduction": 0.059113649418992886
+      },
+      "0.99": {
+        "accuracy": 0.852,
+        "avg_tokens": 4844.294,
+        "token_reduction": 0.008291035404973113
+      }
+    },
+    "aime2024_test": {
+      "full_accuracy": 0.3,
+      "probe": {
+        "roc_auc": 0.7647497626474977,
+        "ece": 0.08158313774757765,
+        "brier": 0.16168214847588103
+      },
+      "0.5": {
+        "accuracy": 0.26666666666666666,
+        "avg_tokens": 9191.566666666668,
+        "token_reduction": 0.2133628497827631
+      },
+      "0.6": {
+        "accuracy": 0.26666666666666666,
+        "avg_tokens": 9884.7,
+        "token_reduction": 0.15404277412784317
+      },
+      "0.7": {
+        "accuracy": 0.3333333333333333,
+        "avg_tokens": 10544.666666666666,
+        "token_reduction": 0.09756118434753336
+      },
+      "0.8": {
+        "accuracy": 0.3333333333333333,
+        "avg_tokens": 11046.133333333333,
+        "token_reduction": 0.05464441902327555
+      },
+      "0.85": {
+        "accuracy": 0.3,
+        "avg_tokens": 11517.566666666668,
+        "token_reduction": 0.014297981109091973
+      },
+      "0.9": {
+        "accuracy": 0.3,
+        "avg_tokens": 11616.766666666666,
+        "token_reduction": 0.0058081982318657355
+      },
+      "0.95": {
+        "accuracy": 0.3,
+        "avg_tokens": 11666.9,
+        "token_reduction": 0.00151766279928911
+      },
+      "0.975": {
+        "accuracy": 0.3,
+        "avg_tokens": 11666.9,
+        "token_reduction": 0.00151766279928911
+      },
+      "0.99": {
+        "accuracy": 0.3,
+        "avg_tokens": 11684.633333333333,
+        "token_reduction": 0.0
+      }
+    }
+  }
+}
