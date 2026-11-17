@@ -42,6 +42,7 @@ def gold_answers(rows):
 def accuracy(preds, golds):
     """Fraction of predictions judged equal to gold by math-verify. Missing or unparseable
     predictions count as wrong."""
+    # math-verify returns True only for an equivalent answer, so None or a parse failure is wrong.
     hits = [p["answer"] is not None and is_correct(p["answer"], golds[p["id"]]) is True for p in preds]
     return float(np.mean(hits))
 
@@ -62,6 +63,7 @@ def roc_auc(scores, labels):
 def expected_calibration_error(scores, labels, n_bins=10):
     """Equal-width bins: sum_b (|B_b| / N) * |acc(B_b) - conf(B_b)|."""
     scores, labels = np.asarray(scores, float), np.asarray(labels, float)
+    # Bin index floor(score * 10); a score of exactly 1.0 goes in the top bin. Empty bins are skipped.
     bins = np.minimum((scores * n_bins).astype(int), n_bins - 1)
     return float(sum((bins == b).mean() * abs(labels[bins == b].mean() - scores[bins == b].mean())
                      for b in range(n_bins) if (bins == b).any()))
@@ -83,6 +85,7 @@ def score(preds, golds):
          "token_reduction": token_reduction(preds)}
     scores = [s for p in preds for s in p.get("probe_scores", [])]
     labels = [y for p in preds for y in p.get("chunk_labels", [])]
+    # Probe metrics only for probe predictions, and AUC needs both correct and incorrect chunks.
     if scores and len(set(labels)) == 2:
         m.update(probe_metrics(scores, labels))
     return m

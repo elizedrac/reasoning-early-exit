@@ -80,21 +80,32 @@ with 44% fewer tokens, while a fixed 4,096-token budget gets 78.8% with 43% fewe
 linear probe at tau = 0.7 gets 83.2% with 59% fewer tokens, while a fixed 1,024-token budget gets
 79.8% with 59% fewer.
 
-## Comparison with Zhang et al. (2025), R1-Distill-Qwen-1.5B
+## Comparison with Zhang et al. (2025)
+
+Zhang et al. numbers are for R1-Distill-Qwen-1.5B (AUC from their Table 11, ECE and Brier from
+their Table 1; their Table 11 gives MATH ECE as 0.03), except token savings, which they report
+only for R1-Distill-Llama-8B on MATH.
 
 | | Zhang et al. | Ours (linear / mlp) |
 |---|---|---|
-| ROC-AUC > 0.7 on all datasets | yes | yes: 0.77 to 0.86 |
-| ECE < 0.1 (theirs: 0.04 GSM8K, 0.04 MATH) | yes | yes: GSM8K 0.037 / 0.056, MATH-500 0.076 / 0.072 |
-| Tokens saved with no accuracy drop at tau = 0.85 | about 24% | GSM8K: 47% / 49% with a 0.3 to 0.5 point drop; MATH-500: 37% / 41% with a 2.6 to 3.6 point drop |
+| ROC-AUC | GSM8K 0.82, MATH 0.84 | GSM8K 0.856 / 0.860, MATH-500 0.795 / 0.777, AIME 0.765 / 0.819 |
+| ECE | GSM8K 0.04, MATH 0.04 | GSM8K 0.037 / 0.056, MATH-500 0.076 / 0.072 |
+| Brier | GSM8K 0.16, MATH 0.12 | GSM8K 0.149 / 0.148, MATH-500 0.194 / 0.190 |
+| Tokens saved at tau = 0.85 | about 24%, 88.2% vs. 88.6% accuracy (Llama-8B, MATH) | GSM8K: 47% / 49% with a 0.3 to 0.5 point drop; MATH-500: 37% / 41% with a 2.6 to 3.6 point drop |
 
 Looking across tau on test (not a tuned result), the largest savings with no accuracy drop are
 38% (linear, tau = 0.9) and 45% (mlp, tau = 0.9) on GSM8K, and 12% (mlp, tau = 0.975) on
-MATH-500. Our probe matches the paper on GSM8K and on probe quality, but on MATH-500 it needs a
-higher tau than 0.85 to avoid losing accuracy.
+MATH-500. Our probe beats their GSM8K AUC and ECE but is below their MATH AUC, ECE and Brier, and
+on MATH-500 it needs a higher tau than 0.85 to avoid losing accuracy.
 
 Our savings are not directly comparable to the paper's. Our tau = 0.85 matches theirs by
 coincidence (it was picked on dev). Our token count also favors early exit: full reasoning counts
 every generated token, including the answer text after `</think>`, while early exit counts only up
 to the chunk end and leaves out the few tokens needed to write the final answer. Labels
 (Qwen + `math-verify` vs. Gemini), chunking, and the 16,384-token limit also differ.
+
+## Deviations from Zhang et al.
+
+- We train one probe on GSM8K + MATH train combined; Zhang et al. train a separate probe per dataset.
+- Our MLP hidden sizes are 128, 256 and 512; Zhang et al. search 0 (linear), 16 and 32 and keep the smallest of the top 10 configs.
+- The first 256 GSM8K train traces were labeled before we limited the extractor's context, so their extractor saw all earlier reasoning (up to 60,000 characters) instead of the last 500 tokens.

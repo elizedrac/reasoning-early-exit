@@ -72,6 +72,7 @@ def mlp_probe(dim, hidden=256):
 
 
 def pos_weight(y, alpha=1.0):
+    # Positive-class weight alpha * #neg / #pos: alpha = 1 balances the classes, > 1 favors positives.
     return torch.tensor(alpha * float((y == 0).sum()) / float((y == 1).sum()))
 
 
@@ -93,6 +94,7 @@ def train_probe(probe, X_train, y_train, X_dev, y_dev, alpha=1.0, lr=1e-3, weigh
         with torch.no_grad():
             dev_loss = loss_fn(probe(X_dev).squeeze(1), y_dev).item()
         history.append(dev_loss)
+        # Early stopping: keep the weights with the lowest dev loss, stop after `patience` bad epochs.
         if dev_loss < best - 1e-5:
             best, best_state, bad = dev_loss, {k: v.clone() for k, v in probe.state_dict().items()}, 0
         else:
@@ -117,10 +119,11 @@ def simulate_early_exit(traces, scores, tau):
         chunk_scores, chunk_labels, stop = [], [], None
         for c in t["chunks"]:
             s = scores.get((t["id"], c["k"]))
-            if s is None:
+            if s is None:  # chunk with no answer, so no hidden state or score
                 continue
             chunk_scores.append(float(s))
             chunk_labels.append(int(c["correct"]))
+            # Early exit: the first chunk whose score reaches tau gives the answer and token count.
             if stop is None and s >= tau:
                 stop = c
         if stop is not None:
@@ -135,12 +138,14 @@ def simulate_early_exit(traces, scores, tau):
 
 
 def full_accuracy(traces, golds):
+    # tau = 2 is never reached, so every trace uses full reasoning.
     return score(simulate_early_exit(traces, {}, 2.0), golds)["accuracy"]
 
 
 def load_split(data, names, mean=None, std=None):
     X, y, keys = zip(*(load_hidden(os.path.join(data, "hidden", n)) for n in names))
     X, y, keys = torch.cat(X), torch.cat(y), sum(keys, [])
+    # Standardize each feature with train mean and std (computed once on train, reused for dev and test).
     if mean is None:
         mean, std = X.mean(0), X.std(0) + 1e-6
     return (X - mean) / std, y, keys, mean, std
@@ -185,6 +190,7 @@ def main():
             grid_results.append({**c, "epochs": len(history_c), **{f"dev_{k}": v for k, v in m.items()}})
             print(f"  [{i + 1}/{len(grid)}] {c} epochs {len(history_c)} dev AUC {m['roc_auc']:.4f} "
                   f"ECE {m['ece']:.4f} Brier {m['brier']:.4f}", flush=True)
+            # Keep the config with the lowest dev Brier score (rewards both ranking and calibration).
             if m["brier"] < best_brier:
                 best_brier, cfg, probe, history = m["brier"], c, probe_c, history_c
         print(f"best config {cfg} (dev Brier {best_brier:.4f})")
@@ -192,7 +198,8 @@ def main():
         probe, history, _ = fit(cfg)
     print(f"trained {len(history)} epochs, best dev loss {min(history):.4f}")
 
-    # Pick tau on dev (all dev sets pooled).
+    # Pick tau on dev (all dev sets pooled): the largest token reduction whose dev accuracy is within
+    # max_drop of full reasoning; if none qualifies, the most conservative tau.
     dev_traces = sum((load_labeled(os.path.join(args.data, "labeled", f"{n}.jsonl")) for n in args.dev), [])
     dev_golds = gold_answers(dev_traces)
     dev_scores = dict(zip(keys_dev, predict(probe, X_dev)))

@@ -24,11 +24,13 @@ import os
 
 
 def full_reasoning(trace):
+    # Truncated traces never finished, so use the answer forced at the token limit.
     answer = trace["forced_answer"] if trace["truncated"] else trace["final_answer"]
     return {"answer": answer, "tokens_used": trace["num_tokens"]}
 
 
 def first_answer(trace):
+    # Chunks are in trace order; take the first one that states an answer.
     for c in trace["chunks"]:
         if c["answer"] is not None and c["end_token"]:
             return {"answer": c["answer"], "tokens_used": c["end_token"]}
@@ -36,8 +38,10 @@ def first_answer(trace):
 
 
 def fixed_budget(trace, budget):
+    # The trace fits in the budget, so the budget never stops it.
     if trace["num_tokens"] <= budget:
         return full_reasoning(trace)
+    # Cut at token N: the answer is the latest one stated by then (None if none, scored as wrong).
     answer = None
     for c in trace["chunks"]:
         if c["answer"] is not None and c["end_token"] and c["end_token"] <= budget:
@@ -46,6 +50,7 @@ def fixed_budget(trace, budget):
 
 
 def predict(trace, rule, budget=None):
+    # Apply the rule, then add the fields score.py needs (full_tokens for token reduction).
     out = {"full": full_reasoning, "first": first_answer}[rule](trace) if rule != "budget" \
         else fixed_budget(trace, budget)
     return {"id": trace["id"], "dataset": trace["dataset"], "rule": rule if rule != "budget" else f"budget{budget}",

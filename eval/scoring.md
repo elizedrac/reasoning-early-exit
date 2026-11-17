@@ -35,6 +35,12 @@ $$\text{Accuracy} = \frac{1}{n}\sum_i \mathbb{1}[\hat a_i \equiv a_i]
 
 With chunks $j = 1..N$, probe score $p_j$, label $y_j$, and bins $B_1..B_{10}$ of $p$:
 
+$$\text{AUC} = P\big(p_j > p_k \mid y_j = 1,\ y_k = 0\big)$$
+
+the probability that a random correct chunk scores higher than a random incorrect one (ties count
+one half).
+
+
 $$\text{ECE} = \sum_b \frac{|B_b|}{N}\,\Big|\overline{y}_{B_b} - \overline{p}_{B_b}\Big|
 \qquad
 \text{Brier} = \frac{1}{N}\sum_j (p_j - y_j)^2$$
@@ -43,6 +49,7 @@ $$\text{ECE} = \sum_b \frac{|B_b|}{N}\,\Big|\overline{y}_{B_b} - \overline{p}_{B
 
 - Zhang et al. 2025, "Reasoning Models Know When They're Right."
 - Hugging Face `math-verify`, https://github.com/huggingface/Math-Verify
+- Fawcett 2006, "An Introduction to ROC Analysis" (ROC-AUC).
 - Naeini et al. 2015, "Obtaining Well Calibrated Probabilities Using Bayesian Binning" (ECE).
 - Brier 1950, "Verification of Forecasts Expressed in Terms of Probability."
 
