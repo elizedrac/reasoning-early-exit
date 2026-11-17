@@ -39,7 +39,7 @@ python baselines/strong-baseline.py --data <cis530 folder> --probe linear --tune
 python baselines/strong-baseline.py --data <cis530 folder> --probe mlp --tune --out-dir results/probe_mlp
 ```
 
-`<cis530 folder>` holds `hidden/` and `labeled/`. With `--tune` each run takes a few minutes on a
+All generated data (traces, labeled chunks, hidden states) is in our shared Google Drive folder `cis530/`; it is too large for the repo. `<cis530 folder>` holds `hidden/` and `labeled/`. With `--tune` each run takes a few minutes on a
 laptop CPU; without it, under a minute. Each run writes per-tau
 predictions (scored with `eval/score.py`) and `summary.json` (including every grid config's dev
 metrics).

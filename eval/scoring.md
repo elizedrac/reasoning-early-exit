@@ -49,7 +49,7 @@ $$\text{ECE} = \sum_b \frac{|B_b|}{N}\,\Big|\overline{y}_{B_b} - \overline{p}_{B
 ## Example
 
 Options: `--pred` (predictions JSONL), `--gold` (labeled JSONL with the gold `answer`), `--out`
-(optional, writes the metrics as JSON). `labeled/` is in the shared Drive folder `cis530/`.
+(optional, writes the metrics as JSON). All generated data (traces, labeled chunks, hidden states) is in our shared Google Drive folder `cis530/`; it is too large for the repo. `labeled/` is in that folder.
 
 Simple baseline (no probe scores, so only answer metrics):
 

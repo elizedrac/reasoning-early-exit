@@ -14,6 +14,7 @@ regenerated.
 
 ## How to run
 
+All generated data (traces, labeled chunks, hidden states) is in our shared Google Drive folder `cis530/`; it is too large for the repo.
 `labeled/` is the folder of labeled traces in the shared Drive folder `cis530/` (set
 `D` to it as in the README and use `"$D/labeled/..."`). Options: `--traces` (labeled JSONL),
 `--rule full|first|budget`, `--budget N` (with `--rule budget`), `--out` (predictions JSONL).
