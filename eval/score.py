@@ -43,16 +43,17 @@ def accuracy(preds, golds):
     """Fraction of predictions judged equal to gold by math-verify. Missing or unparseable
     predictions count as wrong."""
     # math-verify returns True only for an equivalent answer, so None or a parse failure is wrong.
-    hits = [p["answer"] is not None and is_correct(p["answer"], golds[p["id"]]) is True for p in preds]
-    return float(np.mean(hits))
+    hits = [p["answer"] is not None and is_correct(str(p["answer"]), golds[p["id"]]) is True for p in preds]
+    return float(np.mean(hits)) if hits else None
 
 
 def avg_tokens(preds):
-    return float(np.mean([p["tokens_used"] for p in preds]))
+    return float(np.mean([p["tokens_used"] for p in preds])) if preds else None
 
 
 def token_reduction(preds):
-    return 1 - sum(p["tokens_used"] for p in preds) / sum(p["full_tokens"] for p in preds)
+    full = sum(p["full_tokens"] for p in preds)
+    return 1 - sum(p["tokens_used"] for p in preds) / full if full else None
 
 
 def roc_auc(scores, labels):
@@ -85,6 +86,9 @@ def score(preds, golds):
          "token_reduction": token_reduction(preds)}
     scores = [s for p in preds for s in p.get("probe_scores", [])]
     labels = [y for p in preds for y in p.get("chunk_labels", [])]
+    # Drop chunks with no label (null), keeping scores and labels aligned.
+    pairs = [(s, y) for s, y in zip(scores, labels) if y is not None]
+    scores, labels = [s for s, _ in pairs], [y for _, y in pairs]
     # Probe metrics only for probe predictions, and AUC needs both correct and incorrect chunks.
     if scores and len(set(labels)) == 2:
         m.update(probe_metrics(scores, labels))
